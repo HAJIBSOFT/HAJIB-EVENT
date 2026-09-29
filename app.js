@@ -82,15 +82,14 @@ function updateNavbar() {
 
     if (!AppState.user) {
         nav.innerHTML = `
-            <button class="btn btn-primary" onclick="routeView('auth')">تسجيل الدخول</button>
-            <a href="admin.html" class="btn btn-outline">بوابة الإدارة</a>
+           
         `;
         return;
     }
 
     const av = AppState.profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
     nav.innerHTML = `
-        <button class="btn btn-outline" onclick="routeView('events')">استعراض الفعاليات</button>
+       
         <div class="nav-avatar-pill" onclick="routeView('profile')">
             <img src="${av}" class="nav-avatar-img" alt="">
             <span class="nav-avatar-name">${AppState.profile?.full_name || 'حسابي'}</span>
@@ -125,10 +124,10 @@ function renderAuth(container, defaultMode = 'login') {
     container.innerHTML = `
         <div class="card-box auth-box">
             <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.4rem; text-align: center;">
-                ${defaultMode === 'login' ? 'مرحباً بك مجدداً' : 'انضم ككادر محترف في حاجب'}
+                ${defaultMode === 'login' ? 'مرحباً بك مجدداً' : 'انضم لكادر احترافي في حاجب ايفنت'}
             </h2>
             <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-bottom: 1.8rem;">
-                ${defaultMode === 'login' ? 'سجل دخولك لمتابعة فعالياتك وحضورك الميداني' : 'أنشئ حسابك للتقديم على كبرى الفعاليات الوطنية'}
+                ${defaultMode === 'login' ? 'سجل دخولك لمتابعة فعالياتك وحضورك ' : 'هل انت جاهز للانضمام الينا '}
             </p>
 
             ${defaultMode === 'login' ? `
