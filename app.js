@@ -319,14 +319,14 @@ async function renderEvents(container) {
                 <div style="flex: 1;">
                     <div class="live-pill">
                         <span class="live-dot"></span>
-                        الفعالية النشطة والميدانية حالياً
+                        الفعاليات النشطة
                     </div>
                     <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.6rem;">${liveEvent.title}</h2>
                     <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.6; margin-bottom: 1.2rem;">
                         الموقع: ${liveEvent.city} | الأجر اليومي: <strong>${liveEvent.daily_rate} ريال</strong> | تنتهي في: ${new Date(liveEvent.end_date).toLocaleDateString('ar-SA')}
                     </p>
                     <button class="btn btn-primary" onclick="routeView('event_detail', '${liveEvent.id}')">
-                        التوجه لتسجيل الحضور الذكي الميداني
+                        تسجيل الحضور/الانصراف
                     </button>
                 </div>
                 <div style="width: 240px; height: 140px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft);">
@@ -334,7 +334,7 @@ async function renderEvents(container) {
                 </div>
             </div>
             <div class="section-divider">
-                <span>بقية الفعاليات المتاحة للتقديم</span>
+                <span>الفعاليات المتاحة</span>
             </div>
         `;
     }
@@ -362,7 +362,7 @@ async function renderEvents(container) {
                         المدينة: ${e.city} | الأجر: ${e.daily_rate} ريال / اليوم
                     </p>
                     <button class="btn btn-outline btn-full" style="margin-top:auto;" onclick="routeView('event_detail', '${e.id}')">
-                        استعراض التفاصيل والعقد
+                        استعراض التفاصيل 
                     </button>
                 </div>
             </div>
@@ -424,7 +424,7 @@ async function renderDetail(container, eventId) {
 
             <!-- جدول الحضور لا يظهر إلا بعد تسجيل أول حضور فعلي للموظف -->
             ${logs.length > 0 ? `
-                <h3 style="margin-top:2.5rem; font-size:1.1rem;">سجل الحضور والانصراف الميداني الخاص بك</h3>
+                <h3 style="margin-top:2.5rem; font-size:1.1rem;">سجل الحضور والانصراف</h3>
                 <div class="table-container" style="margin-top:1rem;">
                     <table class="data-table">
                         <thead><tr><th>التاريخ</th><th>تسجيل الحضور</th><th>تسجيل الانصراف</th><th>طريقة التحضير</th></tr></thead>
@@ -434,7 +434,7 @@ async function renderDetail(container, eventId) {
                                     <td>${new Date(l.check_in_time).toLocaleDateString('ar-SA')}</td>
                                     <td>${new Date(l.check_in_time).toLocaleTimeString('ar-SA')}</td>
                                     <td>${l.check_out_time ? new Date(l.check_out_time).toLocaleTimeString('ar-SA') : 'جلسة مستمرة'}</td>
-                                    <td>${l.is_manual ? '<span class="badge badge-warning">يدوي</span>' : '<span class="badge badge-success">ذاتي GPS</span>'}</td>
+                                    <td>${l.is_manual ? '<span class="badge badge-warning">الادارة</span>' : '<span class="badge badge-success">GPS</span>'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -453,7 +453,7 @@ function renderAction(ev, userApp, isActive) {
         return `
             <div>
                 <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.9rem; margin-bottom:1rem;">
-                    <input type="checkbox" id="contractAgree"> أوافق على شروط التعاقد والمهام التنظيمية
+                    <input type="checkbox" id="contractAgree"> اوافق على الشروط والاحكام
                 </label>
                 <button class="btn btn-primary" onclick="applyEvent('${ev.id}')">تأكيد التقديم للفعالية</button>
             </div>
@@ -486,9 +486,9 @@ function renderAction(ev, userApp, isActive) {
 
     // المستخدم مقبول والفعالية جارية الآن
     if (isActive) {
-        return `<button class="btn btn-danger" onclick="clockOut('${ev.id}')">تسجيل الانصراف والخروج الآن</button>`;
+        return `<button class="btn btn-danger" onclick="clockOut('${ev.id}')">تسجيل الانصراف</button>`;
     } else {
-        return `<button class="btn btn-primary" onclick="clockIn('${ev.id}', ${ev.latitude}, ${ev.longitude}, ${ev.geofence_radius_meters})">تسجيل الحضور الذكي الميداني (GPS)</button>`;
+        return `<button class="btn btn-primary" onclick="clockIn('${ev.id}', ${ev.latitude}, ${ev.longitude}, ${ev.geofence_radius_meters})">تسجيل الحضور</button>`;
     }
 }
 
@@ -508,9 +508,9 @@ function renderAction(ev, userApp, isActive) {
     if (userApp.status === 'rejected') return `<span class="badge badge-danger">نعتذر، لم يتم قبولك</span>`;
 
     if (isActive) {
-        return `<button class="btn btn-danger" onclick="clockOut('${ev.id}')">تسجيل الانصراف والخروج الآن</button>`;
+        return `<button class="btn btn-danger" onclick="clockOut('${ev.id}')">تسجيل الانصراف</button>`;
     } else {
-        return `<button class="btn btn-primary" onclick="clockIn('${ev.id}', ${ev.latitude}, ${ev.longitude}, ${ev.geofence_radius_meters})">تسجيل الحضور الذكي الميداني (GPS)</button>`;
+        return `<button class="btn btn-primary" onclick="clockIn('${ev.id}', ${ev.latitude}, ${ev.longitude}, ${ev.geofence_radius_meters})">تسجيل الحضور</button>`;
     }
 }
 
@@ -606,7 +606,7 @@ function renderProfile(container) {
                         ${p.cv_url ? `<div style="margin-top:0.4rem;"><a href="${p.cv_url}" target="_blank" style="font-size:0.82rem; color:var(--brand-primary);">استعراض السيرة الذاتية الحالية</a></div>` : ''}
                     </div>
                     <div class="form-group col-span-2">
-                        <label>نبذة مهنية</label>
+                        <label>نبذة</label>
                         <textarea id="profBio" class="form-control" rows="3">${p.bio || ''}</textarea>
                     </div>
                 </div>
