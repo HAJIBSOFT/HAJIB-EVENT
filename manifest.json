@@ -1,6 +1,6 @@
 {
   "name": "حاجب لإدارة الفعاليات والكوادر",
-  "short_name": "حاجب",
+  "short_name": "HAJIB EVENT",
   "description": "منصة تنظيم الفعاليات وإدارة الحضور الذكي للكوادر الميدانية",
   "start_url": "./index.html",
   "display": "standalone",
@@ -11,13 +11,13 @@
   "lang": "ar",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=192&auto=format&fit=crop&q=80",
+      "src": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgDX2fw0_-HSjljYY1Idfz-WLVg62bDmQRFbnNDnJlge9pG4LgOnPNFvzPLH8bNlV0TFZFSOaClDC4XKZVuwNCRggBItmCLS11s5GNBrvZeWO6umOkY4Rbzpifxmm-_zKGn0yu15dzixAv4_QPKW4VYFv7jWwASpW_RoY9ID55Hd6J27up_5OcwnVcR0yMF/s768/Gemini_Generated_Image_3f8rg13f8rg13f8r.jpg",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=512&auto=format&fit=crop&q=80",
+      "src": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgDX2fw0_-HSjljYY1Idfz-WLVg62bDmQRFbnNDnJlge9pG4LgOnPNFvzPLH8bNlV0TFZFSOaClDC4XKZVuwNCRggBItmCLS11s5GNBrvZeWO6umOkY4Rbzpifxmm-_zKGn0yu15dzixAv4_QPKW4VYFv7jWwASpW_RoY9ID55Hd6J27up_5OcwnVcR0yMF/s768/Gemini_Generated_Image_3f8rg13f8rg13f8r.jpg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
