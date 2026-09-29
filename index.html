@@ -2,8 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة حاجب - بوابة الكوادر والفعاليات</title>
+    
+    <!-- إعدادات تطبيق الويب PWA و iOS -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HAJIB EVENT">
+    <link rel="apple-touch-icon" href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgDX2fw0_-HSjljYY1Idfz-WLVg62bDmQRFbnNDnJlge9pG4LgOnPNFvzPLH8bNlV0TFZFSOaClDC4XKZVuwNCRggBItmCLS11s5GNBrvZeWO6umOkY4Rbzpifxmm-_zKGn0yu15dzixAv4_QPKW4VYFv7jWwASpW_RoY9ID55Hd6J27up_5OcwnVcR0yMF/s768/Gemini_Generated_Image_3f8rg13f8rg13f8r.jpg">
+
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -12,11 +22,20 @@
         <div class="header-container">
             <div class="logo" onclick="routeView('events')">
                 <div class="logo-symbol">H</div>
-                <div class="logo-text">HAJIB <span>TALENTS</span></div>
+                <div class="logo-text">HAJIB <span>EVENT</span></div>
             </div>
             <nav id="mainNav" class="nav-links"></nav>
         </div>
     </header>
+
+    <!-- شريط تثبيت التطبيق للجوال (يظهر تلقائياً إذا كان متاحاً للتثبيت) -->
+    <div id="pwaInstallBanner" class="pwa-install-banner" style="display: none;">
+        <div>
+            <strong>تطبيق حاجب للكوادر</strong>
+            <p style="font-size: 0.78rem; color: var(--text-muted);">ثبّت التطبيق على شاشتك الرئيسية لسهولة التحضير الميداني</p>
+        </div>
+        <button id="btnPwaInstall" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">تثبيت</button>
+    </div>
 
     <main class="main-content" id="appRoot">
         <div style="text-align: center; padding: 4rem 0;">
@@ -34,5 +53,38 @@
 
     <div id="toastContainer" class="toast-container"></div>
     <script src="app.js"></script>
+
+    <!-- تسجيل Service Worker وحدث التثبيت -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(() => {
+                    console.log('PWA Service Worker جاهز ويعمل');
+                }).catch(err => {
+                    console.error('فشل تسجيل Service Worker:', err);
+                });
+            });
+        }
+
+        // إدارة ظهور زر تثبيت التطبيق على الجوال
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const banner = document.getElementById('pwaInstallBanner');
+            if (banner) banner.style.display = 'flex';
+        });
+
+        document.getElementById('btnPwaInstall')?.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    document.getElementById('pwaInstallBanner').style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+    </script>
 </body>
 </html>
