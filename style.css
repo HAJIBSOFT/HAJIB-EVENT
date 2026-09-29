@@ -183,29 +183,78 @@ body {
 }
 
 /* بطاقة الفعالية الحالية النشطة المتميزة */
+/* بطاقة الفعالية النشطة: البيانات يمين والصورة يسار بدون خط أزرق */
 .hero-live-card {
     background: #ffffff;
-    border: 1px solid #bfdbfe;
+    border: 1px solid var(--border-subtle); /* إطار ناعم وبسيط */
     border-radius: var(--radius-lg);
-    padding: 2.2rem;
-    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-card);
     position: relative;
     overflow: hidden;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
     display: flex;
+    flex-direction: row !important; /* يضمن بقاء البيانات يمين والصورة يسار */
     justify-content: space-between;
     align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
+    gap: 1.2rem;
 }
+
+/* 1. إلغاء الخط الأزرق بالكامل */
 .hero-live-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 6px;
+    display: none !important;
+}
+
+/* 2. ضبط أبعاد وموقع الصورة على اليسار */
+.hero-live-card > div:last-child {
+    width: 130px !important;
+    height: 110px !important;
+    flex-shrink: 0; /* منع انكماش الصورة */
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-live-card > div:last-child img {
+    width: 100%;
     height: 100%;
-    background: var(--brand-primary);
+    object-fit: contain; /* لعرض الشعار بالكامل داخل الإطار */
+    padding: 6px;
+}
+
+/* 3. تنسيق الظهور على شاشات الجوال */
+@media (max-width: 768px) {
+    .hero-live-card {
+        padding: 1.2rem 1rem !important;
+        flex-direction: row !important; /* الحفاظ على البيانات يمين والصورة يسار في الجوال */
+        align-items: center !important;
+        gap: 0.8rem !important;
+    }
+
+    /* تصغير حجم الصورة قليلاً لتناسب شاشة الجوال */
+    .hero-live-card > div:last-child {
+        width: 90px !important;
+        height: 85px !important;
+    }
+
+    .hero-live-card h2 {
+        font-size: 1.15rem !important;
+    }
+
+    .hero-live-card p {
+        font-size: 0.8rem !important;
+        margin-bottom: 0.8rem !important;
+    }
+
+    .hero-live-card .btn {
+        padding: 0.45rem 0.85rem !important;
+        font-size: 0.82rem !important;
+        width: auto !important; /* عدم ملء الزر لكامل العرض */
+    }
 }
 .live-pill {
     display: inline-flex;
