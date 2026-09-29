@@ -1,0 +1,26 @@
+{
+  "name": "حاجب لإدارة الفعاليات والكوادر",
+  "short_name": "حاجب",
+  "description": "منصة تنظيم الفعاليات وإدارة الحضور الذكي للكوادر الميدانية",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=192&auto=format&fit=crop&q=80",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=512&auto=format&fit=crop&q=80",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

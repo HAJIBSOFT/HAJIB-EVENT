@@ -670,3 +670,44 @@ body {
         display: block;
     }
 }
+
+/* دعم الحواف الآمنة لهواتف آيفون وشاشات النوتش Safe Areas */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* شريط تثبيت تطبيق الـ PWA على الجوال */
+.pwa-install-banner {
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0.6rem 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    position: sticky;
+    top: 57px;
+    z-index: 999;
+}
+
+/* تحسين تجربة اللمس على أجهزة الجوال */
+@media (max-width: 768px) {
+    .btn, .nav-btn, .sidebar-item {
+        min-height: 44px; /* المعيار القياسي لأزرار اللمس في الهواتف */
+    }
+    
+    .event-card {
+        border-radius: var(--radius-sm);
+    }
+
+    .hero-live-card {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* جعل الحقول والنماذج مريحة جداً للإدخال باللمس */
+    .form-control {
+        font-size: 16px; /* يمنع الزووم التلقائي المزعج في متصفح Safari بالآيفون */
+        padding: 0.85rem 1rem;
+    }
+}
