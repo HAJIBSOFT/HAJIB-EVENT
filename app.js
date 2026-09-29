@@ -316,10 +316,8 @@ async function renderEvents(container) {
         html += `
             <div class="hero-live-card">
                 <div style="flex: 1;">
-                    <div class="live-pill">
-                        <span class="live-dot"></span>
-                        الفعاليات النشطة
-                    </div>
+
+                   
                     <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.6rem;">${liveEvent.title}</h2>
                     <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.6; margin-bottom: 1.2rem;">
                         الموقع: ${liveEvent.city} | الأجر اليومي: <strong>${liveEvent.daily_rate} ريال</strong> | تنتهي في: ${new Date(liveEvent.end_date).toLocaleDateString('ar-SA')}
