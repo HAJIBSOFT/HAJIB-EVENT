@@ -328,7 +328,9 @@ async function renderEvents(container) {
                         تسجيل الحضور/الانصراف
                     </button>
                 </div>
-              
+                              <div style="width: 240px; height: 140px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft);">
+                    <img src="${liveEvent.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400'}" style="width:100%; height:100%; object-fit:cover;" alt="">
+                </div>
             </div>
             <div class="section-divider">
                 <span>الفعاليات المتاحة</span>
