@@ -494,13 +494,13 @@ async function renderDetail(container, eventId) {
                              style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #fef3c7; background:#f8fafc;" alt="">
                         <div>
                             <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
-                                <span class="badge" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; font-weight:700;">
-                                    ${userTeam.team_name}
-                                </span>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">مشرفك الميداني المباشر</span>
                             </div>
-                            <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
+                           <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
                                 ${userTeam.leader?.full_name || 'لم يحدد مشرف بعد'}
+                            </h4>
+							<h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
+                                 ${userTeam.team_name|| 'لم يحدد الغريق بعد'}
                             </h4>
                         </div>
                     </div>
