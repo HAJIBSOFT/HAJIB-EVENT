@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hajib-pwa-v6';
+const CACHE_NAME = 'hajib-pwa-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
