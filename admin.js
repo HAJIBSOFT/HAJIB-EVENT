@@ -1723,7 +1723,7 @@ async function printEventTeamsStructure(eventId) {
 
     const { data: apps } = await db
         .from('HAJIBEVENT-applications')
-        .select(`team_id, freelancer:freelancer_id(full_name, id_number, phone, city)`)
+        .select(`team_id, freelancer:freelancer_id(full_name, id_number, phone, nationality)`)
         .eq('event_id', eventId)
         .eq('status', 'approved');
 
@@ -1787,7 +1787,7 @@ async function printEventTeamsStructure(eventId) {
                                     <th>اسم الموظف</th>
                                     <th>رقم الهوية الوطنية</th>
                                     <th>رقم الجوال</th>
-                                    <th>المدينة</th>
+                                    <th>الجنسية</th>
                                     <th style="width: 140px; text-align: center;">التوقيع الميداني</th>
                                 </tr>
                             </thead>
@@ -1799,7 +1799,7 @@ async function printEventTeamsStructure(eventId) {
                                         <td><strong>${m.freelancer?.full_name || '-'}</strong></td>
                                         <td>${m.freelancer?.id_number || '-'}</td>
                                         <td dir="ltr" style="text-align:right;">${m.freelancer?.phone || '-'}</td>
-                                        <td>${m.freelancer?.city || '-'}</td>
+                                        <td>${m.freelancer?.nationality || '-'}</td>
                                         <td style="text-align:center;"><span class="sign-box"></span></td>
                                     </tr>
                                 `).join('')}
@@ -1825,7 +1825,7 @@ async function printEventTeamsStructure(eventId) {
                                 <th>اسم الموظف</th>
                                 <th>رقم الهوية</th>
                                 <th>رقم الجوال</th>
-                                <th>المدينة</th>
+                                <th>الجنسية</th>
                                 <th style="width: 140px; text-align: center;">التوقيع الميداني</th>
                             </tr>
                         </thead>
@@ -1836,7 +1836,7 @@ async function printEventTeamsStructure(eventId) {
                                     <td><strong>${m.freelancer?.full_name || '-'}</strong></td>
                                     <td>${m.freelancer?.id_number || '-'}</td>
                                     <td dir="ltr" style="text-align:right;">${m.freelancer?.phone || '-'}</td>
-                                    <td>${m.freelancer?.city || '-'}</td>
+                                    <td>${m.freelancer?.nationality || '-'}</td>
                                     <td style="text-align:center;"><span class="sign-box"></span></td>
                                 </tr>
                             `).join('')}
