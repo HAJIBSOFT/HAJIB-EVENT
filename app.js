@@ -48,12 +48,20 @@ function handleBackdropClick(e) {
     if (e.target.id === 'modalOverlay') closeModal();
 }
 
+// تشغيل التطبيق مع فحص روابط استعادة كلمة المرور
 async function initApp() {
     const db = getDb();
     if (!db) return;
 
     const closeBtn = document.getElementById('modalCloseBtn');
     if (closeBtn) closeBtn.onclick = closeModal;
+
+    // فحص هل المستخدم قادم من رابط استعادة الإيميل (#type=recovery)
+    const hash = window.location.hash;
+    if (hash && (hash.includes('type=recovery') || hash.includes('access_token='))) {
+        renderResetPasswordScreen(document.getElementById('appRoot'));
+        return;
+    }
 
     try {
         const { data: { session } } = await db.auth.getSession();
@@ -74,7 +82,6 @@ async function initApp() {
         updateNavbar();
         routeView(AppState.user ? 'events' : 'auth');
     }
-	setupPasswordRecoveryListener();
 }
 
 function updateNavbar() {
@@ -915,6 +922,73 @@ async function handleChangePasswordSubmit(e) {
         showToast('تم تغيير كلمة المرور بنجاح تام', 'success');
     }
 }
+
+// شاشة مخصصة تظهر فوراً عند النقر على الرابط في البريد الإلكتروني
+function renderResetPasswordScreen(container) {
+    container.innerHTML = `
+        <div class="card-box auth-box" style="margin-top: 3rem;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div class="logo-symbol" style="margin: 0 auto 0.8rem;">H</div>
+                <h2>استعادة وتعيين كلمة المرور</h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">أدخل كلمة المرور الجديدة لحسابك لتسجيل الدخول فوراً</p>
+            </div>
+            <form onsubmit="handleEmailResetSubmit(event)">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>كلمة المرور الجديدة</label>
+                    <input type="password" id="emailNewPass" class="form-control" required minlength="6" placeholder="••••••••">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>تأكيد كلمة المرور الجديدة</label>
+                    <input type="password" id="emailConfirmPass" class="form-control" required minlength="6" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">حفظ كلمة المرور والدخول للمنصة</button>
+            </form>
+        </div>
+    `;
+}
+
+// تنفيذ حفظ كلمة المرور الجديدة بعد فتح رابط الإيميل
+async function handleEmailResetSubmit(e) {
+    e.preventDefault();
+    const newPass = document.getElementById('emailNewPass').value;
+    const confirmPass = document.getElementById('emailConfirmPass').value;
+
+    if (newPass !== confirmPass) {
+        return showToast('كلمتا المرور غير متطابقتين', 'error');
+    }
+    if (newPass.length < 6) {
+        return showToast('يجب ألا تقل كلمة المرور عن 6 خانات', 'error');
+    }
+
+    const db = getDb();
+    showToast('جاري تحديث كلمة المرور...', 'info');
+
+    const { error } = await db.auth.updateUser({ password: newPass });
+    if (error) {
+        showToast(error.message, 'error');
+    } else {
+        // تنظيف الـ Hash من الرابط ليعود الرابط نظيفاً
+        window.history.replaceState(null, null, window.location.pathname);
+        showToast('تم تعيين كلمة المرور بنجاح! جاري تحويلك لحسابك...', 'success');
+        
+        // جلب الجلسة والدخول مباشرة
+        const { data: { session } } = await db.auth.getSession();
+        if (session) {
+            AppState.user = session.user;
+            const { data: prof } = await db.from('HAJIBEVENT-profiles').select('*').eq('id', session.user.id).maybeSingle();
+            AppState.profile = prof;
+            updateNavbar();
+            routeView('events');
+        } else {
+            routeView('auth');
+        }
+    }
+}
+
+// تصدير الدوال للنطاق العام
+window.renderResetPasswordScreen = renderResetPasswordScreen;
+window.handleEmailResetSubmit = handleEmailResetSubmit;
+
 
 // تصدير الدوال للنطاق العام
 window.openChangePasswordModal = openChangePasswordModal;
