@@ -437,7 +437,7 @@ async function openEventFullManageView(eventId) {
                                     <th>الموظف</th>
                                     <th>رقم الهوية</th>
                                     <th>الجوال</th>
-                                    <th>المدينة</th>
+                                    <th>الجنسية</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -447,7 +447,7 @@ async function openEventFullManageView(eventId) {
                                         <td><strong>${a.freelancer?.full_name}</strong></td>
                                         <td>${a.freelancer?.id_number}</td>
                                         <td dir="ltr" style="text-align:right;">${a.freelancer?.phone}</td>
-                                        <td>${a.freelancer?.city}</td>
+                                        <td>${a.freelancer?.nationality}</td>
                                         <td>
                                             <div style="display:flex; gap:0.4rem;">
                                                 <!-- زر تعيين لفريق -->
@@ -1836,7 +1836,7 @@ async function printEventTeamsStructure(eventId) {
                                     <td><strong>${m.freelancer?.full_name || '-'}</strong></td>
                                     <td>${m.freelancer?.id_number || '-'}</td>
                                     <td dir="ltr" style="text-align:right;">${m.freelancer?.phone || '-'}</td>
-                                    <td>${m.freelancer?.nationality || '-'}</td>
+                                     <td>${m.freelancer?.nationality || '-'}</td>
                                     <td style="text-align:center;"><span class="sign-box"></span></td>
                                 </tr>
                             `).join('')}
