@@ -103,9 +103,7 @@ body {
 .nav-avatar-pill {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.35rem 0.8rem 0.35rem 0.4rem;
-    border-radius: var(--radius-full);
+     border-radius: var(--radius-full);
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     cursor: pointer;
