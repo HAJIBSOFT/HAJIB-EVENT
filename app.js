@@ -74,6 +74,7 @@ async function initApp() {
         updateNavbar();
         routeView(AppState.user ? 'events' : 'auth');
     }
+	setupPasswordRecoveryListener();
 }
 
 function updateNavbar() {
@@ -136,11 +137,19 @@ function renderAuth(container, defaultMode = 'login') {
                         <label>البريد الإلكتروني</label>
                         <input type="email" id="loginEmail" class="form-control" required placeholder="name@domain.com">
                     </div>
-                    <div class="form-group" style="margin-bottom: 1.6rem;">
-                        <label>كلمة المرور</label>
-                        <input type="password" id="loginPassword" class="form-control" required placeholder="••••••••">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-full">تسجيل الدخول</button>
+                    <div class="form-group" style="margin-bottom: 0.8rem;">
+    <label>كلمة المرور</label>
+    <input type="password" id="loginPassword" class="form-control" required placeholder="••••••••">
+</div>
+
+<!-- رابط نسيت كلمة المرور -->
+<div style="text-align: left; margin-bottom: 1.5rem;">
+    <a href="javascript:void(0)" onclick="handleForgotPassword()" style="font-size: 0.82rem; color: var(--brand-primary); text-decoration: underline;">
+        نسيت كلمة المرور؟
+    </a>
+</div>
+
+<button type="submit" class="btn btn-primary btn-full">تسجيل الدخول</button>
                 </form>
                 <div class="auth-switch-footer">
                     لا يوجد لديك حساب؟
@@ -193,13 +202,17 @@ function renderAuth(container, defaultMode = 'login') {
                                 ${SAUDI_REGIONS.map(c => `<option value="${c}">${c}</option>`).join('')}
                             </select>
                         </div>
+						<div class="form-group col-span-2">
+                        <label>رقم STC BANK</label>
+						<input type="tel" id="regBio" class="form-control" required placeholder="سيتم تحويل المستحقات على هذا الرقم">
+                    </div>
                         <div class="form-group">
                             <label>الصورة الشخصية</label>
-                            <input type="file" id="regAvatar" class="form-control" accept="image/*">
+                            <input type="file" id="regAvatar" class="form-control" accept="image/*" required>
                         </div>
-                        <div class="form-group col-span-2">
-                            <label>السيرة الذاتية (CV - PDF أو Word)</label>
-                            <input type="file" id="regCv" class="form-control" accept=".pdf,.doc,.docx" required>
+                        <div class="form-group">
+                            <label>صورة الهوية</label>
+                            <input type="file" id="regCv" class="form-control" accept="image/*" required>
                         </div>
                         <div class="form-group col-span-2">
                             <label>تعيين كلمة المرور</label>
@@ -275,6 +288,7 @@ async function handleRegSubmit(e) {
         nationality: document.getElementById('regNat').value,
         gender: 'ذكر', blood_type: document.getElementById('regBlood').value,
         city: document.getElementById('regCity').value, languages: 'العربية',
+		 bio: document.getElementById('regBio').value,
         avatar_url: avUrl, cv_url: cvUrl
     };
 
@@ -494,13 +508,13 @@ async function renderDetail(container, eventId) {
                              style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #fef3c7; background:#f8fafc;" alt="">
                         <div>
                             <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
+                                <span class="badge" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; font-weight:700;">
+                                    ${userTeam.team_name}
+                                </span>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">مشرفك الميداني المباشر</span>
                             </div>
-                           <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
+                            <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
                                 ${userTeam.leader?.full_name || 'لم يحدد مشرف بعد'}
-                            </h4>
-							<h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
-                                 ${userTeam.team_name|| 'لم يحدد الغريق بعد'}
                             </h4>
                         </div>
                     </div>
@@ -753,16 +767,21 @@ function renderProfile(container) {
                         <input type="file" id="profAvatarFile" class="form-control" accept="image/*">
                     </div>
                     <div class="form-group col-span-2">
-                        <label>تحديث السيرة الذاتية (CV الجديد)</label>
+                        <label>تحديث صورة الهوية</label>
                         <input type="file" id="profCvFile" class="form-control" accept=".pdf,.doc,.docx">
-                        ${p.cv_url ? `<div style="margin-top:0.4rem;"><a href="${p.cv_url}" target="_blank" style="font-size:0.82rem; color:var(--brand-primary);">استعراض السيرة الذاتية الحالية</a></div>` : ''}
+                        ${p.cv_url ? `<div style="margin-top:0.4rem;"><a href="${p.cv_url}" target="_blank" style="font-size:0.82rem; color:var(--brand-primary);">معاينة صورة الهوية الحالية</a></div>` : ''}
                     </div>
                     <div class="form-group col-span-2">
-                        <label>نبذة</label>
-                        <textarea id="profBio" class="form-control" rows="3">${p.bio || ''}</textarea>
+                        <label>رقم STCBANK</label>
+						<input type="tel" id="profBio" class="form-control" value="${p.bio || ''}" required>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.5rem;">حفظ التعديلات</button>
+               <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.5rem;">حفظ التعديلات</button>
+
+<!-- زر تغيير كلمة المرور الجديد -->
+<button type="button" class="btn btn-outline btn-full" style="margin-top: 0.8rem;" onclick="openChangePasswordModal()">
+    تغيير كلمة المرور
+</button>
 							
             </form>
 			<label>.</label>
@@ -807,7 +826,102 @@ async function handleProfileUpdate(e) {
     showToast('تم حفظ التعديلات بنجاح', 'success');
     renderProfile(document.getElementById('appRoot'));
 }
+// 1. طلب إرسال رابط الاستعادة إلى إيميل المستخدم
+async function handleForgotPassword() {
+    const email = prompt('أدخل بريدك الإلكتروني المسجل لإرسال رابط إعادة تعيين كلمة المرور:');
+    if (!email || !email.trim()) return;
 
+    const db = getDb();
+    showToast('جاري إرسال الرابط إلى بريدك...', 'info');
+
+    const { error } = await db.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.href // يعيد المستخدم لنفس الصفحة بعد النقر على الرابط في الإيميل
+    });
+
+    if (error) {
+        showToast(error.message, 'error');
+    } else {
+        showToast('تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني بنجاح', 'success');
+    }
+}
+
+// 2. مراقبة عودة المستخدم من رابط الإيميل لطلب كلمة المرور الجديدة
+function setupPasswordRecoveryListener() {
+    const db = getDb();
+    if (!db) return;
+
+    db.auth.onAuthStateChange(async (event, session) => {
+        // عند نقر المستخدم على الرابط في الإيميل، يتعرف عليه النظام كحدث PASSWORD_RECOVERY
+        if (event === 'PASSWORD_RECOVERY') {
+            const newPassword = prompt('أهلاً بك! يرجى إدخال كلمة المرور الجديدة (6 خانات كحد أدنى):');
+            if (newPassword && newPassword.length >= 6) {
+                const { error } = await db.auth.updateUser({ password: newPassword });
+                if (error) {
+                    showToast(error.message, 'error');
+                } else {
+                    showToast('تم تعيين كلمة المرور الجديدة بنجاح! يمكنك الآن تسجيل الدخول بها', 'success');
+                    routeView('auth');
+                }
+            } else {
+                showToast('كلمة المرور غير صالحة أو تم إلغاء العملية', 'error');
+            }
+        }
+    });
+}
+
+
+// نافذة منبثقة لتغيير كلمة المرور بأمان
+function openChangePasswordModal() {
+    const html = `
+        <h3>تغيير كلمة المرور</h3>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.2rem;">أدخل كلمة المرور الجديدة الخاصة بحسابك (6 خانات كحد أدنى)</p>
+        <form onsubmit="handleChangePasswordSubmit(event)">
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label>كلمة المرور الجديدة</label>
+                <input type="password" id="newPassInput" class="form-control" required minlength="6" placeholder="••••••••">
+            </div>
+            <div class="form-group" style="margin-bottom:1.5rem;">
+                <label>تأكيد كلمة المرور الجديدة</label>
+                <input type="password" id="confirmPassInput" class="form-control" required minlength="6" placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">تأكيد وحفظ كلمة المرور</button>
+        </form>
+    `;
+    openModal(html);
+}
+
+// تنفيذ تحديث كلمة المرور في Supabase Auth
+async function handleChangePasswordSubmit(e) {
+    e.preventDefault();
+    const newPass = document.getElementById('newPassInput').value;
+    const confirmPass = document.getElementById('confirmPassInput').value;
+
+    if (newPass !== confirmPass) {
+        return showToast('كلمتا المرور غير متطابقتين! يرجى التأكد', 'error');
+    }
+
+    if (newPass.length < 6) {
+        return showToast('يجب ألا تقل كلمة المرور عن 6 خانات', 'error');
+    }
+
+    const db = getDb();
+    showToast('جاري تحديث كلمة المرور...', 'info');
+
+    const { error } = await db.auth.updateUser({ password: newPass });
+    if (error) {
+        showToast(error.message, 'error');
+    } else {
+        closeModal();
+        showToast('تم تغيير كلمة المرور بنجاح تام', 'success');
+    }
+}
+
+// تصدير الدوال للنطاق العام
+window.openChangePasswordModal = openChangePasswordModal;
+window.handleChangePasswordSubmit = handleChangePasswordSubmit;
+
+// تأكد من تصدير الدالة للنطاق العام
+window.handleForgotPassword = handleForgotPassword;
 window.routeView = routeView;
 window.renderAuth = renderAuth;
 window.handleLoginSubmit = handleLoginSubmit;
