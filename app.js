@@ -92,8 +92,7 @@ function updateNavbar() {
        
         <div class="nav-avatar-pill" onclick="routeView('profile')">
             <img src="${av}" class="nav-avatar-img" alt="">
-            <span class="nav-avatar-name">${AppState.profile?.full_name || 'حسابي'}</span>
-        </div>
+			</div>
        
     `;
 }
