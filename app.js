@@ -540,7 +540,7 @@ async function renderDetail(container, eventId) {
                             </a>
                             
                             <!-- زر واتساب دائري -->
-                            <a href="https://wa.me/${userTeam.leader.phone.replace(/[^0-9]/g, '')}" target="_blank"
+                            <a href="https://wa.me/966${userTeam.leader.phone.replace(/[^0-9]/g, '')}" target="_blank"
                                title="مراسلة المشرف عبر واتساب"
                                style="width:42px; height:42px; border-radius:50%; background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.2s;"
                                onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">
