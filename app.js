@@ -92,7 +92,8 @@ function updateNavbar() {
        
         <div class="nav-avatar-pill" onclick="routeView('profile')">
             <img src="${av}" class="nav-avatar-img" alt="">
-			</div>
+            <span class="nav-avatar-name"></span>
+        </div>
        
     `;
 }
@@ -286,6 +287,7 @@ async function handleRegSubmit(e) {
 }
 
 // عرض الفعاليات مع إبراز الفعالية النشطة حالياً بالأعلى وفصلها
+// عرض الفعاليات مع زر الحضور والانصراف الفعلي في البطاقة النشطة
 async function renderEvents(container) {
     container.innerHTML = '<div style="text-align:center; padding:3rem 0;"><p style="color:var(--text-muted)">جاري جلب الفعاليات...</p></div>';
     const db = getDb();
@@ -300,14 +302,25 @@ async function renderEvents(container) {
     const now = new Date();
     const approvedIds = applications.filter(a => a.status === 'approved').map(a => a.event_id);
 
-    // الفعالية النشطة حالياً للمستخدم
+    // العثور على الفعالية النشطة حالياً للمستخدم
     const liveEvent = (events || []).find(e => {
         return approvedIds.includes(e.id) && new Date(e.start_date) <= now && new Date(e.end_date) >= now;
     });
 
-    // باقي الفعاليات المتاحة
-    const otherEvents = (events || []).filter(e => !liveEvent || e.id !== liveEvent.id);
+    // فحص ما إذا كان الموظف مسجل حضور حالياً في الفعالية النشطة
+    let isLiveCheckedIn = false;
+    if (liveEvent && AppState.user) {
+        const { data: activeSession } = await db
+            .from('HAJIBEVENT-attendance')
+            .select('id')
+            .eq('event_id', liveEvent.id)
+            .eq('freelancer_id', AppState.user.id)
+            .is('check_out_time', null)
+            .limit(1);
+        isLiveCheckedIn = (activeSession && activeSession.length > 0);
+    }
 
+    const otherEvents = (events || []).filter(e => !liveEvent || e.id !== liveEvent.id);
     let html = '';
 
     // بطاقة الفعالية النشطة بالأعلى
@@ -315,22 +328,38 @@ async function renderEvents(container) {
         html += `
             <div class="hero-live-card">
                 <div style="flex: 1;">
-
                    
-                    <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.6rem;">${liveEvent.title}</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.6; margin-bottom: 1.2rem;">
+                    <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.4rem;">${liveEvent.title}</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
                         الموقع: ${liveEvent.city} | الأجر اليومي: <strong>${liveEvent.daily_rate} ريال</strong> | تنتهي في: ${new Date(liveEvent.end_date).toLocaleDateString('ar-SA')}
                     </p>
-                    <button class="btn btn-primary" onclick="routeView('event_detail', '${liveEvent.id}')">
-                        تسجيل الحضور/الانصراف
-                    </button>
+                    
+                    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+                        <!-- زر الحضور والانصراف التفاعلي المباشر -->
+                        ${isLiveCheckedIn ? `
+                            <button class="btn btn-danger" onclick="clockOut('${liveEvent.id}')">
+                               تسجيل الانصراف
+                            </button>
+                        ` : `
+                            <button class="btn btn-primary" onclick="clockIn('${liveEvent.id}', ${liveEvent.latitude}, ${liveEvent.longitude}, ${liveEvent.geofence_radius_meters})">
+                               تسجيل الحضور
+                            </button>
+                        `}
+
+                        
+                       
+                    </div>
                 </div>
-                              <div style="width: 240px; height: 140px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft);">
-                    <img src="${liveEvent.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400'}" style="width:100%; height:100%; object-fit:cover;" alt="">
-                </div>
+
+                <div>
+                    <div style="width: 240px; height: 140px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); cursor: pointer;" 
+     onclick="routeView('event_detail', '${liveEvent.id}')">
+    <img src="${liveEvent.image_url || 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhg2EYK-psEVdB2s-_IdyuVMejpQancsMIGMgbBg1gokaOqnaTPf17fa-3M-z4NwUQWFF-xUdJk7mUTVImEIX3CS6HfcqCgOJu_CJMYzHvyb1NZiSS13oh0ZgREkPcpCvREyMCUXc0Tl_96d4oaCOP1bNewNAYId2OBUkRB-whj0VSkvgfcp2-Zs-Ca7vUF/s1408/Gemini_Generated_Image_3f8rg13f8rg13f8r.jfif'}" style="width:100%; height:100%; object-fit:cover;" alt="">
+</div> </div>
             </div>
+
             <div class="section-divider">
-                <span>الفعاليات المتاحة</span>
+                <span>بقية الفعاليات المتاحة</span>
             </div>
         `;
     }
@@ -347,7 +376,7 @@ async function renderEvents(container) {
         html += `
             <div class="event-card">
                 <div class="event-card-media">
-                    <img src="${e.image_url || 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=500'}" alt="">
+                    <img src="${e.image_url || 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhg2EYK-psEVdB2s-_IdyuVMejpQancsMIGMgbBg1gokaOqnaTPf17fa-3M-z4NwUQWFF-xUdJk7mUTVImEIX3CS6HfcqCgOJu_CJMYzHvyb1NZiSS13oh0ZgREkPcpCvREyMCUXc0Tl_96d4oaCOP1bNewNAYId2OBUkRB-whj0VSkvgfcp2-Zs-Ca7vUF/s1408/Gemini_Generated_Image_3f8rg13f8rg13f8r.jfif'}" alt="">
                 </div>
                 <div class="event-card-body">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
@@ -358,7 +387,7 @@ async function renderEvents(container) {
                         المدينة: ${e.city} | الأجر: ${e.daily_rate} ريال / اليوم
                     </p>
                     <button class="btn btn-outline btn-full" style="margin-top:auto;" onclick="routeView('event_detail', '${e.id}')">
-                        استعراض التفاصيل 
+                        استعراض التفاصيل والعقد
                     </button>
                 </div>
             </div>
@@ -519,27 +548,63 @@ async function applyEvent(id) {
     routeView('event_detail', id);
 }
 
+// دالة تسجيل الدخول مع تحديث مكان الزر تلقائياً
 function clockIn(eventId, tLat, tLng, radius) {
+    if (!navigator.geolocation) {
+        return showToast('المتصفح لا يدعم تحديد الموقع الجغرافي', 'error');
+    }
+
+    showToast('جاري التحقق من النطاق الجغرافي GPS...', 'info');
+
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const dist = calculateDistanceInMeters(pos.coords.latitude, pos.coords.longitude, tLat, tLng);
-        if (dist > radius) return showToast(`أنت خارج النطاق بمسافة ${Math.round(dist)} متر!`, 'error');
+        if (dist > radius) {
+            return showToast(`أنت خارج نطاق الفعالية بمسافة ${Math.round(dist)} متر!`, 'error');
+        }
+
         const db = getDb();
-        await db.from('HAJIBEVENT-attendance').insert({ event_id: eventId, freelancer_id: AppState.user.id, check_in_time: new Date(), check_in_lat: pos.coords.latitude, check_in_lng: pos.coords.longitude });
-        showToast('تم تسجيل حضورك بنجاح', 'success');
-        routeView('event_detail', eventId);
-    }, () => showToast('يرجى تفعيل صلاحية الـ GPS', 'error'), { enableHighAccuracy: true });
+        const { error } = await db.from('HAJIBEVENT-attendance').insert({
+            event_id: eventId,
+            freelancer_id: AppState.user.id,
+            check_in_time: new Date(),
+            check_in_lat: pos.coords.latitude,
+            check_in_lng: pos.coords.longitude
+        });
+
+        if (error) {
+            showToast(error.message, 'error');
+        } else {
+            showToast('تم تسجيل الحضور بنجاح', 'success');
+            // تحديث الواجهة الحالية ليتغير الزر فوراً
+            routeView(AppState.currentView, eventId);
+        }
+    }, () => showToast('يرجى تفعيل صلاحية الـ GPS في الهاتف لتسجيل الحضور', 'error'), { enableHighAccuracy: true });
 }
 
+// دالة تسجيل الخروج مع تحديث مكان الزر تلقائياً
 function clockOut(eventId) {
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const db = getDb();
-        const { data: logs } = await db.from('HAJIBEVENT-attendance').select('id').eq('event_id', eventId).eq('freelancer_id', AppState.user.id).is('check_out_time', null).limit(1);
+        const { data: logs } = await db
+            .from('HAJIBEVENT-attendance')
+            .select('id')
+            .eq('event_id', eventId)
+            .eq('freelancer_id', AppState.user.id)
+            .is('check_out_time', null)
+            .limit(1);
+
         if (logs && logs.length > 0) {
-            await db.from('HAJIBEVENT-attendance').update({ check_out_time: new Date(), check_out_lat: pos.coords.latitude, check_out_lng: pos.coords.longitude }).eq('id', logs[0].id);
-            showToast('تم تسجيل الانصراف بنجاح', 'success');
-            routeView('event_detail', eventId);
+            await db.from('HAJIBEVENT-attendance').update({
+                check_out_time: new Date(),
+                check_out_lat: pos.coords.latitude,
+                check_out_lng: pos.coords.longitude
+            }).eq('id', logs[0].id);
+
+            showToast('تم تسجيل الانصراف والخروج بنجاح', 'success');
+            // تحديث الواجهة الحالية ليعود الزر أزرق مجدداً
+            routeView(AppState.currentView, eventId);
         }
-    }, () => showToast('يرجى تفعيل صلاحية الـ GPS', 'error'));
+    }, () => showToast('يرجى تفعيل صلاحية الـ GPS لتسجيل الانصراف', 'error'));
 }
 
 // تعديل بيانات الفريلانسر مع إمكانية تعديل الـ CV وبقاء الاسم والهوية والجنسية مقفلة
@@ -607,8 +672,9 @@ function renderProfile(container) {
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.5rem;">حفظ التعديلات</button>
+							
             </form>
-            <label>.</label>
+			<label>.</label>
 			 <button class="btn btn-primary btn-full" onclick="handleLogout()">تسجيل خروج</button>
         </div>
     `;
