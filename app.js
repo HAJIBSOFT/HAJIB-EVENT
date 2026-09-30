@@ -94,7 +94,7 @@ function updateNavbar() {
             <img src="${av}" class="nav-avatar-img" alt="">
             <span class="nav-avatar-name">${AppState.profile?.full_name || 'حسابي'}</span>
         </div>
-        <button class="btn btn-outline" onclick="handleLogout()">خروج</button>
+       
     `;
 }
 
@@ -609,6 +609,8 @@ function renderProfile(container) {
                 </div>
                 <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.5rem;">حفظ التعديلات</button>
             </form>
+            <label>.</label>
+			 <button class="btn btn-primary btn-full" onclick="handleLogout()">تسجيل خروج</button>
         </div>
     `;
 }
