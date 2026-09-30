@@ -297,7 +297,7 @@ async function openEventFullManageView(eventId) {
     // جلب الموظفين المعتمدين والمتقدمين
     const { data: apps } = await db
         .from('HAJIBEVENT-applications')
-        .select(`id, status, applied_at, team_id, freelancer:freelancer_id (id, full_name, phone, avatar_url, cv_url, city, id_number)`)
+        .select(`id, status, applied_at, team_id, freelancer:freelancer_id (*)`)
         .eq('event_id', eventId);
 
     // جلب الحضور
@@ -469,46 +469,50 @@ async function openEventFullManageView(eventId) {
             ` : ''}
         </div>
 
-        <!-- جدول طلبات التقديم الجديدة -->
+       <!-- جدول طلبات التقديم الجديدة مع البحث وفلترة الجنسية ومعاينة الملف -->
         <div class="card-box" style="margin-bottom: 2rem;">
-            <div class="table-header-box">
-                <h3>طلبات التقديم الجديدة</h3>
-                <span class="count-badge">${pendingList.length} متقدم جديد</span>
+            <div class="table-header-box" style="flex-wrap:wrap; gap:1rem;">
+                <div>
+                    <h3>طلبات التقديم الجديدة</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">فرز ومعاينة المتقدمين واتخاذ قرار القبول أو الرفض</p>
+                </div>
+                <span class="count-badge" id="pendingCountBadge">${pendingList.length} متقدم جديد</span>
             </div>
+
+            <!-- شريط البحث وفلترة الجنسية -->
+            <div style="background:#f8fafc; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1rem; margin-bottom:1.2rem;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; align-items:flex-end;">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label style="font-size:0.8rem; font-weight:600;">البحث في المتقدمين</label>
+                        <input type="text" id="pendingSearchInput" class="form-control" 
+                               placeholder="ابحث بالاسم، رقم الجوال، أو رقم الهوية..." 
+                               oninput="filterPendingApplicants('${ev.id}')">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.8rem; font-weight:600;">فلترة بالجنسية</label>
+                        <select id="pendingNatFilter" class="form-control" onchange="filterPendingApplicants('${ev.id}')">
+                            <option value="">كافة الجنسيات</option>
+                            ${[...new Set(pendingList.map(a => a.freelancer?.nationality).filter(Boolean))].map(n => `<option value="${n}">${n}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول المتقدمين المطور -->
             <div class="table-container">
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>المرشح</th>
+                            <th>الجنسية</th>
                             <th>المدينة</th>
-                            <th>السيرة الذاتية</th>
+                            <th>الهوية</th>
                             <th>التواصل</th>
-                            <th>القرار التنظيمي</th>
+                            <th style="text-align:center;">الإجراءات والقرار</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${pendingList.length === 0 ? '<tr><td colspan="5" style="text-align:center;">لا توجد طلبات تقديم جديدة</td></tr>' : ''}
-                        ${pendingList.map(a => `
-                            <tr>
-                                <td>
-                                    <div style="display:flex; align-items:center; gap:0.6rem;">
-                                        <img src="${a.freelancer?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" style="width:38px; height:38px; border-radius:50%; object-fit:cover;" alt="">
-                                        <strong>${a.freelancer?.full_name || 'غير معروف'}</strong>
-                                    </div>
-                                </td>
-                                <td>${a.freelancer?.city || '-'}</td>
-                                <td>
-                                    ${a.freelancer?.cv_url ? `<a href="${a.freelancer.cv_url}" target="_blank" class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;">استعراض CV</a>` : 'لا يوجد'}
-                                </td>
-                                <td>
-                                    <a href="https://wa.me/${(a.freelancer?.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;">واتساب</a>
-                                </td>
-                                <td style="display:flex; gap:0.4rem;">
-                                    <button class="btn btn-primary" style="padding:0.25rem 0.8rem; font-size:0.78rem;" onclick="setApplicantStatus('${a.id}', 'approved', '${ev.id}')">قبول</button>
-                                    <button class="btn btn-danger" style="padding:0.25rem 0.8rem; font-size:0.78rem;" onclick="setApplicantStatus('${a.id}', 'rejected', '${ev.id}')">رفض</button>
-                                </td>
-                            </tr>
-                        `).join('')}
+                    <tbody id="pendingApplicantsTbody">
+                        <!-- يتم حقن الصفوف تلقائياً عبر دالة الفلترة -->
                     </tbody>
                 </table>
             </div>
@@ -577,6 +581,9 @@ async function openEventFullManageView(eventId) {
     `;
 	// تشغيل جدول الحضور بالبيانات الحالية
     runEventAttendanceFilter(eventId);
+	// حفظ قائمة المتقدمين الحالية وتشغيل الفلترة التلقائية
+    currentEventPendingList = pendingList;
+    filterPendingApplicants(eventId);
 }
 
 
@@ -1253,18 +1260,18 @@ function viewStaffFullProfile(staffId) {
                 <strong>${s.languages || 'العربية'}</strong>
             </div>
             <div style="grid-column: span 2;">
-                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">نبذة مهنية:</span>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقمSTCBANK</span>
                 <p style="background:#f8fafc; padding:0.8rem; border-radius:6px; border:1px solid var(--border-subtle); line-height:1.6;">
-                    ${s.bio || 'لا توجد نبذة مسجلة'}
+                    ${s.bio || 'لا يوجد رقم مسجل'}
                 </p>
             </div>
             <div style="grid-column: span 2; margin-top:0.5rem; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <strong>السيرة الذاتية (CV):</strong>
+                    <strong>الهوية</strong>
                 </div>
                 <div>
                     ${s.cv_url 
-                        ? `<a href="${s.cv_url}" target="_blank" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.82rem;">استعراض وتحميل الـ CV</a>` 
+                        ? `<a href="${s.cv_url}" target="_blank" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.82rem;">معاينة الهوية</a>` 
                         : '<span style="color:var(--text-muted); font-size:0.85rem;">لم يتم رفع سيرة ذاتية</span>'}
                 </div>
             </div>
@@ -1943,8 +1950,8 @@ async function printEventAttendanceReport(eventId) {
 
     // 3. جلب التقديمات المعتمدة لمعرفة فريق كل موظف
     const { data: apps } = await db
-        .from('HAJIBEVENT-applications')
-        .select(`team_id, freelancer_id, freelancer:freelancer_id(id, full_name, id_number, phone)`)
+    .from('HAJIBEVENT-applications')
+    .select(`team_id, freelancer_id, freelancer:freelancer_id(id, full_name, id_number, phone, bio)`)
         .eq('event_id', eventId)
         .eq('status', 'approved');
 
@@ -1977,6 +1984,7 @@ async function printEventAttendanceReport(eventId) {
                 full_name: log.freelancer?.full_name || 'غير معروف',
                 id_number: log.freelancer?.id_number || '-',
                 phone: log.freelancer?.phone || '-',
+				 bio: userApp?.freelancer?.bio || '', 
                 team_id: teamId,
                 sessionCount: 0,
                 totalMinutes: 0
@@ -2048,6 +2056,7 @@ async function printEventAttendanceReport(eventId) {
                                     <th>اسم الموظف</th>
                                     <th>رقم الهوية الوطنية</th>
                                     <th style="text-align: center;">عدد أيام / جلسات التحضير</th>
+									 <th style="text-align: center;">رقم STCBANK</th>
                                     <th style="text-align: center;">إجمالي ساعات العمل</th>
                                     <th style="width: 150px; text-align: center;">توقيع استلام المستحقات</th>
                                 </tr>
@@ -2064,6 +2073,7 @@ async function printEventAttendanceReport(eventId) {
                                             <td><strong>${s.full_name}</strong></td>
                                             <td>${s.id_number}</td>
                                             <td style="text-align: center; font-weight: 700; color: #0f172a;">${s.sessionCount} أيام عمل</td>
+											<td>${s.bio || 'لا يوجد رقم مسجل'}</td>
                                             <td style="text-align: center;">${hoursFormatted}</td>
                                             <td style="text-align: center;"><span class="sign-box"></span></td>
                                         </tr>
@@ -2146,6 +2156,180 @@ async function printEventAttendanceReport(eventId) {
         printWin.close();
     }, 450);
 }
+
+// متغير لحفظ المتقدمين الحاليين للبحث الفوري
+let currentEventPendingList = [];
+
+// دالة البحث وفلترة المتقدمين الجدد لحظياً
+function filterPendingApplicants(eventId) {
+    const tbody = document.getElementById('pendingApplicantsTbody');
+    if (!tbody) return;
+
+    const searchVal = (document.getElementById('pendingSearchInput')?.value || '').trim().toLowerCase();
+    const natVal = document.getElementById('pendingNatFilter')?.value || '';
+
+    const filtered = currentEventPendingList.filter(a => {
+        const f = a.freelancer;
+        if (!f) return false;
+
+        const matchSearch = !searchVal || 
+            (f.full_name && f.full_name.toLowerCase().includes(searchVal)) ||
+            (f.phone && f.phone.includes(searchVal)) ||
+            (f.id_number && f.id_number.includes(searchVal));
+
+        const matchNat = !natVal || f.nationality === natVal;
+
+        return matchSearch && matchNat;
+    });
+
+    // تحديث العداد
+    const badge = document.getElementById('pendingCountBadge');
+    if (badge) badge.innerText = `${filtered.length} متقدم مطابق`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">لا توجد طلبات تقديم مطابقة للبحث المحدد</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(a => `
+        <tr>
+            <!-- المرشح مع الصورة الشخصية -->
+            <td>
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                    <img src="${a.freelancer?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" 
+                         style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1px solid var(--border-subtle); background:#f1f5f9;" alt="">
+                    <div>
+                        <strong>${a.freelancer?.full_name || 'غير معروف'}</strong>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${a.freelancer?.id_number || '-'}</div>
+                    </div>
+                </div>
+            </td>
+            <!-- الجنسية -->
+            <td><span class="badge" style="background:#f1f5f9; color:var(--text-primary); font-weight:600;">${a.freelancer?.nationality || '-'}</span></td>
+            <!-- المدينة -->
+            <td>${a.freelancer?.city || '-'}</td>
+            <!-- السيرة الذاتية -->
+            <td>
+                ${a.freelancer?.cv_url 
+                    ? `<a href="${a.freelancer.cv_url}" target="_blank" class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;">معاينة الهوية</a>` 
+                    : '<span style="color:var(--text-muted); font-size:0.75rem;">لا يوجد</span>'}
+            </td>
+            <!-- التواصل واتساب -->
+            <td>
+                <a href="https://wa.me/${(a.freelancer?.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;">واتساب</a>
+            </td>
+            <!-- الإجراءات: زر معاينة كل التفاصيل + قبول + رفض -->
+            <td>
+                <div style="display:flex; gap:0.35rem; justify-content:center; align-items:center;">
+                    <!-- زر رؤية كل تفاصيل المتقدم -->
+                    <button class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem; background:#fff;" 
+                            title="رؤية كافة التفاصيل" 
+                            onclick="viewApplicantFullDetails('${a.freelancer?.id}')">
+                        معاينة الملف
+                    </button>
+                    <!-- قبول -->
+                    <button class="btn btn-primary" style="padding:0.25rem 0.7rem; font-size:0.75rem;" 
+                            onclick="setApplicantStatus('${a.id}', 'approved', '${eventId}')">
+                        قبول
+                    </button>
+                    <!-- رفض -->
+                    <button class="btn btn-danger" style="padding:0.25rem 0.7rem; font-size:0.75rem;" 
+                            onclick="setApplicantStatus('${a.id}', 'rejected', '${eventId}')">
+                        رفض
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// نافذة منبثقة لعرض كافة تفاصيل المتقدم الشاملة
+async function viewApplicantFullDetails(freelancerId) {
+    const db = getDb();
+    let s = (allStaffList || []).find(item => item.id === freelancerId);
+
+    // إذا لم تكن محملة في الذاكرة يتم جلبها فوراً من قاعدة البيانات
+    if (!s) {
+        const { data } = await db.from('HAJIBEVENT-profiles').select('*').eq('id', freelancerId).single();
+        s = data;
+    }
+
+    if (!s) return showToast('تعذر العثور على بيانات المتقدم', 'error');
+
+    const html = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; padding-bottom:1.2rem; border-bottom:1px solid var(--border-subtle);">
+            <div style="display:flex; align-items:center; gap:1.2rem;">
+                <img src="${s.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" 
+                     style="width:65px; height:65px; border-radius:50%; object-fit:cover; border:2px solid var(--brand-primary); background:#f1f5f9;" alt="">
+                <div>
+                    <h2 style="font-size:1.25rem; margin-bottom:0.2rem;">${s.full_name}</h2>
+                    <span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:600;">
+                        ${s.nationality || 'غير محدد'}
+                    </span>
+                </div>
+            </div>
+            <div>
+                <a href="https://wa.me/${(s.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="font-size:0.8rem; padding:0.4rem 0.8rem;">
+                    مراسلة واتساب
+                </a>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1.2rem; font-size:0.88rem;">
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقم الهوية:</span>
+                <strong>${s.id_number || '-'} (${s.id_type || 'هوية وطنية'})</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">البريد الإلكتروني:</span>
+                <strong>${s.email || '-'}</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقم الجوال:</span>
+                <strong dir="ltr">${s.phone || '-'}</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">تاريخ الميلاد:</span>
+                <strong>${s.dob || '-'}</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">المدينة / المنطقة:</span>
+                <strong>${s.city || '-'}</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">الجنس:</span>
+                <strong>${s.gender || '-'}</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">فصيلة الدم:</span>
+                <strong>${s.blood_type || '-'}</strong>
+            </div>
+            <div>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">اللغات المتقنة:</span>
+                <strong>${s.languages || 'العربية'}</strong>
+            </div>
+            <div style="grid-column: span 2;">
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقمSTCBANK</span>
+                <p style="background:#f8fafc; padding:0.8rem; border-radius:6px; border:1px solid var(--border-subtle); line-height:1.6;">
+                    ${s.bio || 'لا يوجد رقم مسجل'}
+                </p>
+            </div>
+            <div style="grid-column: span 2; margin-top:0.5rem; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+                <div><strong>الهوية</strong></div>
+                <div>
+                    ${s.cv_url 
+                        ? `<a href="${s.cv_url}" target="_blank" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.82rem;">معاينة الهوية</a>` 
+                        : '<span style="color:var(--text-muted); font-size:0.85rem;">لم يتم رفع سيرة ذاتية</span>'}
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(html);
+}
+
+// تصدير الدوال للنطاق العام
+window.filterPendingApplicants = filterPendingApplicants;
+window.viewApplicantFullDetails = viewApplicantFullDetails;
 
 // تصدير الدوال للنطاق العام
 window.runEventAttendanceFilter = runEventAttendanceFilter;
