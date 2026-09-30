@@ -392,7 +392,7 @@ async function openEventFullManageView(eventId) {
                                             </div>
                                         </div>
                                         ${t.leader?.phone ? `
-                                            <a href="https://wa.me/${t.leader.phone.replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="padding:0.2rem 0.5rem; font-size:0.72rem; background:#fff;">واتساب المشرف</a>
+                                            <a href="https://wa.me/966${t.leader.phone.replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="padding:0.2rem 0.5rem; font-size:0.72rem; background:#fff;">واتساب المشرف</a>
                                         ` : ''}
                                     </div>
                                     
@@ -1216,7 +1216,7 @@ function viewStaffFullProfile(staffId) {
                 </div>
             </div>
             <div>
-                <a href="https://wa.me/${(s.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="font-size:0.8rem; padding:0.4rem 0.8rem;">
+                <a href="https://wa.me/966${(s.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="font-size:0.8rem; padding:0.4rem 0.8rem;">
                     مراسلة واتساب
                 </a>
             </div>
@@ -1658,7 +1658,7 @@ function dispatchTeamWhatsApp(leaderPhone, leaderName, teamName, eventTitle, mem
 
     text += `\nنتمنى لكم وللفريق كامل التوفيق في إنجاز المهام الميدانية.\n- إدارة الفعالية`;
 
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    const url = `https://wa.me/966${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
 }
 
@@ -2233,7 +2233,7 @@ function filterPendingApplicants(eventId) {
             </td>
             <!-- التواصل واتساب -->
             <td>
-                <a href="https://wa.me/${(a.freelancer?.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;">واتساب</a>
+                <a href="https://wa.me/966${(a.freelancer?.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.75rem;">واتساب</a>
             </td>
             <!-- الإجراءات: زر معاينة كل التفاصيل + قبول + رفض -->
             <td>
@@ -2286,7 +2286,7 @@ async function viewApplicantFullDetails(freelancerId) {
                 </div>
             </div>
             <div>
-                <a href="https://wa.me/${(s.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="font-size:0.8rem; padding:0.4rem 0.8rem;">
+                <a href="https://wa.me/966${(s.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline" style="font-size:0.8rem; padding:0.4rem 0.8rem;">
                     مراسلة واتساب
                 </a>
             </div>
@@ -2413,7 +2413,7 @@ async function handleAdminSetPasswordSubmit(e, staffId, staffName, email, phone)
         text += `- كلمة المرور الجديدة: *${newPass}*\n\n`;
         text += `يمكنك الآن الدخول بها لحسابك ومتابعة فعالياتك الميدانية.\n- إدارة الفعاليات`;
 
-        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+        const waUrl = `https://wa.me/966${cleanPhone}?text=${encodeURIComponent(text)}`;
         window.open(waUrl, '_blank');
     } else {
         showToast('تم تحديث كلمة المرور (رقم جوال الموظف غير مسجل للواتساب)', 'info');
