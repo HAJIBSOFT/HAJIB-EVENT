@@ -1198,8 +1198,9 @@ function filterStaffTable() {
 }
 
 // نافذة منبثقة احترافية لمعاينة كافة تفاصيل الموظف وسيرته الذاتية
+// نافذة معاينة البروفايل الشاملة مع خيارات استعادة وتعيين كلمة المرور
 function viewStaffFullProfile(staffId) {
-    const s = allStaffList.find(item => item.id === staffId);
+    const s = (allStaffList || []).find(item => item.id === staffId);
     if (!s) return showToast('لم يتم العثور على بيانات الموظف', 'error');
 
     const html = `
@@ -1221,7 +1222,6 @@ function viewStaffFullProfile(staffId) {
             </div>
         </div>
 
-        <!-- شبكة عرض كامل التفاصيل -->
         <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1.2rem; font-size:0.88rem;">
             <div>
                 <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقم الهوية / الإقامة:</span>
@@ -1260,19 +1260,36 @@ function viewStaffFullProfile(staffId) {
                 <strong>${s.languages || 'العربية'}</strong>
             </div>
             <div style="grid-column: span 2;">
-                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقمSTCBANK</span>
+                <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">رقم STC BANK:</span>
                 <p style="background:#f8fafc; padding:0.8rem; border-radius:6px; border:1px solid var(--border-subtle); line-height:1.6;">
-                    ${s.bio || 'لا يوجد رقم مسجل'}
+                    ${s.bio || 'لايوجد رقم مسجل'}
                 </p>
             </div>
-            <div style="grid-column: span 2; margin-top:0.5rem; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <strong>الهوية</strong>
-                </div>
+            <div style="grid-column: span 2; padding-top:0.8rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+                <div><strong>الهوية:</strong></div>
                 <div>
                     ${s.cv_url 
-                        ? `<a href="${s.cv_url}" target="_blank" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.82rem;">معاينة الهوية</a>` 
-                        : '<span style="color:var(--text-muted); font-size:0.85rem;">لم يتم رفع سيرة ذاتية</span>'}
+                        ? `<a href="${s.cv_url}" target="_blank" class="btn btn-primary" style="padding:0.35rem 0.9rem; font-size:0.8rem;">معاينة الهوية</a>` 
+                        : '<span style="color:var(--text-muted); font-size:0.85rem;">لم يتم رفع صورة الهوية</span>'}
+                </div>
+            </div>
+
+            <!-- قسم إدارة كلمة المرور الجديد للمدير -->
+            <div style="grid-column: span 2; margin-top:0.8rem; padding-top:1.2rem; border-top:1px solid var(--border-subtle); background:#f8fafc; padding:1rem; border-radius:var(--radius-sm);">
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.88rem; display:block; margin-bottom:0.6rem;">
+                    إدارة الدخول وأمان حساب الموظف:
+                </span>
+                <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <!-- الخيار الأول: إرسال رابط استعادة للإيميل -->
+                    <button type="button" class="btn btn-outline" style="font-size:0.8rem; padding:0.4rem 0.8rem; background:#fff;"
+                            onclick="adminSendResetEmail('${s.email}')">
+                        إرسال رابط الاستعادة للإيميل
+                    </button>
+                    <!-- الخيار الثاني: تعيين كلمة المرور وإرسالها بالواتساب -->
+                    <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.4rem 0.8rem;"
+                            onclick="openSetPasswordModal('${s.id}', '${s.full_name}', '${s.email}', '${s.phone}')">
+                        تعيين كلمة مرور وإرسالها واتساب
+                    </button>
                 </div>
             </div>
         </div>
@@ -2326,6 +2343,87 @@ async function viewApplicantFullDetails(freelancerId) {
     `;
     openModal(html);
 }
+
+// الخيار الأول: إرسال رابط استعادة كلمة المرور إلى إيميل الموظف مباشرة
+async function adminSendResetEmail(email) {
+    if (!email) return showToast('البريد الإلكتروني غير متوفر', 'error');
+    const db = getDb();
+    showToast('جاري إرسال رابط الاستعادة للإيميل...', 'info');
+
+    const { error } = await db.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin + '/index.html'
+    });
+
+    if (error) {
+        showToast(error.message, 'error');
+    } else {
+        showToast('تم إرسال رابط استعادة كلمة المرور بنجاح إلى إيميل الموظف', 'success');
+    }
+}
+
+// الخيار الثاني: فتح نافذة لتعيين كلمة مرور جديدة للموظف
+function openSetPasswordModal(staffId, staffName, email, phone) {
+    const html = `
+        <h3>تعيين كلمة مرور جديدة للموظف</h3>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.2rem;">
+            الموظف: <strong>${staffName}</strong> (${email})
+        </p>
+        <form onsubmit="handleAdminSetPasswordSubmit(event, '${staffId}', '${staffName}', '${email}', '${phone}')">
+            <div class="form-group" style="margin-bottom:1.5rem;">
+                <label>أدخل كلمة المرور الجديدة (6 خانات كحد أدنى)</label>
+                <input type="text" id="adminNewPassInput" class="form-control" required minlength="6" placeholder="مثال: 123456 أو كلمة سر قوية">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">
+                حفظ وإرسال البيانات للموظف عبر واتساب
+            </button>
+        </form>
+    `;
+    openModal(html);
+}
+
+// حفظ كلمة المرور الجديدة في Supabase وإرسالها عبر الواتساب فوراً
+async function handleAdminSetPasswordSubmit(e, staffId, staffName, email, phone) {
+    e.preventDefault();
+    const newPass = document.getElementById('adminNewPassInput').value.trim();
+    if (newPass.length < 6) return showToast('يجب ألا تقل كلمة المرور عن 6 خانات', 'error');
+
+    const db = getDb();
+    showToast('جاري تحديث كلمة المرور في النظام...', 'info');
+
+    // تنفيذ التحديث عبر دالة SQL التي أنشأناها في Supabase
+    const { error } = await db.rpc('admin_set_user_password', {
+        target_user_id: staffId,
+        new_password: newPass
+    });
+
+    if (error) {
+        return showToast('فشل التحديث: ' + error.message, 'error');
+    }
+
+    closeModal();
+    showToast('تم تحديث كلمة المرور بنجاح! جاري تحضير رسالة الواتساب...', 'success');
+
+    // تجهيز رسالة الواتساب الرسمية
+    if (phone) {
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        let text = `السلام عليكم ورحمة الله وبركاته\n`;
+        text += `أهلاً بك أخي/أختي: *${staffName}*\n`;
+        text += `تم تعيين كلمة مرور جديدة لحسابك في *منصة حاجب* بنجاح:\n\n`;
+        text += `- البريد الإلكتروني: *${email}*\n`;
+        text += `- كلمة المرور الجديدة: *${newPass}*\n\n`;
+        text += `يمكنك الآن الدخول بها لحسابك ومتابعة فعالياتك الميدانية.\n- إدارة الفعاليات`;
+
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+    } else {
+        showToast('تم تحديث كلمة المرور (رقم جوال الموظف غير مسجل للواتساب)', 'info');
+    }
+}
+
+// تصدير الدوال للنطاق العام
+window.adminSendResetEmail = adminSendResetEmail;
+window.openSetPasswordModal = openSetPasswordModal;
+window.handleAdminSetPasswordSubmit = handleAdminSetPasswordSubmit;
 
 // تصدير الدوال للنطاق العام
 window.filterPendingApplicants = filterPendingApplicants;
