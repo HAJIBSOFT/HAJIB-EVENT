@@ -67,6 +67,8 @@ async function initApp() {
         const { data: { session } } = await db.auth.getSession();
         if (session && session.user) {
             AppState.user = session.user;
+requestNotificationPermission();
+setupRealtimeNotifications(session.user.id);
             const { data: prof } = await db.from('HAJIBEVENT-profiles').select('*').eq('id', session.user.id).maybeSingle();
             if (prof && prof.is_suspended) {
                 await db.auth.signOut();
@@ -82,6 +84,7 @@ async function initApp() {
         updateNavbar();
         routeView(AppState.user ? 'events' : 'auth');
     }
+
 }
 
 function updateNavbar() {
@@ -981,6 +984,57 @@ async function handleEmailResetSubmit(e) {
             routeView('events');
         } else {
             routeView('auth');
+        }
+    }
+}
+// ==========================================
+// نظام استقبال وإطلاق إشعارات النظام (PWA Push)
+// ==========================================
+
+// 1. طلب إذن الإشعارات من هاتف المستخدم
+async function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+}
+
+// 2. الاستماع الفوري واللحظي لأي إشعار جديد يخص هذا الموظف
+function setupRealtimeNotifications(userId) {
+    const db = getDb();
+    if (!db) return;
+
+    db.channel(`user-notifications-${userId}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'HAJIBEVENT-notifications',
+            filter: `user_id=eq.${userId}`
+        }, (payload) => {
+            const notif = payload.new;
+            // إظهار إشعار النظام على شاشة الهاتف
+            triggerSystemNotification(notif.title, notif.message);
+            // إظهار تنبيه داخلي سريع
+            showToast(`${notif.title}: ${notif.message}`, 'info');
+        })
+        .subscribe();
+}
+
+// 3. إطلاق إشعار النظام المعتمد
+function triggerSystemNotification(title, message) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification(title, {
+                    body: message,
+                    icon: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=192',
+                    badge: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=192',
+                    vibrate: [200, 100, 200],
+                    dir: 'rtl',
+                    lang: 'ar'
+                });
+            });
+        } else {
+            new Notification(title, { body: message });
         }
     }
 }
