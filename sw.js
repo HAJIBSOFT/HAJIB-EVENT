@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hajib-pwa-v9';
+const CACHE_NAME = 'hajib-pwa-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,42 +7,34 @@ const ASSETS_TO_CACHE = [
   './manifest.json'
 ];
 
-// تثبيت عامل الخدمة وحفظ ملفات الواجهة
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)));
   self.skipWaiting();
 });
 
-// تفعيل وتحديث الـ Cache
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) => Promise.all(keys.map((k) => k !== CACHE_NAME && caches.delete(k))))
   );
   self.clients.claim();
 });
 
-// استراتيجية التعامل مع الطلبات (Network-First للبيانات مع دعم Offline للواجهات)
 self.addEventListener('fetch', (event) => {
-  // عدم تخزين طلبات Supabase API مؤقتاً لضمان حداثة البيانات الميدانية
-  if (event.request.url.includes('supabase.co')) {
-    return;
-  }
+  if (event.request.url.includes('supabase.co')) return;
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
 
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+// التفاعل عند نقر الموظف على الإشعار في هاتفه
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('index.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow('./index.html');
     })
   );
 });
