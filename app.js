@@ -527,13 +527,14 @@ async function renderDetail(container, eventId) {
                              style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #fef3c7; background:#f8fafc;" alt="">
                         <div>
                             <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
-                                <span class="badge" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; font-weight:700;">
-                                    ${userTeam.team_name}
-                                </span>
+                                
                                 <span style="font-size:0.75rem; color:var(--text-muted);">مشرفك الميداني المباشر</span>
                             </div>
                             <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
                                 ${userTeam.leader?.full_name || 'لم يحدد مشرف بعد'}
+                            </h4>
+							  <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
+                                 ${userTeam.team_name}
                             </h4>
                         </div>
                     </div>
@@ -1094,7 +1095,7 @@ async function openNotificationsCenter() {
 
     const html = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid var(--border-subtle);">
-            <h3 style="margin:0; font-size:1.2rem;">مركز الإشعارات والتنبيهات</h3>
+            <h3 style="margin:0; font-size:1.2rem;">الاشعارات</h3>
             <span style="font-size:0.8rem; color:var(--text-muted);">${(notifications || []).length} إشعار مسجل</span>
         </div>
 
@@ -1102,11 +1103,11 @@ async function openNotificationsCenter() {
         ${!isPushEnabled ? `
             <div class="notif-permission-banner" id="bannerPushPrompt">
                 <div>
-                    <strong style="color:#1e40af; font-size:0.9rem; display:block; margin-bottom:0.2rem;">إشعارات الهاتف غير مفعلة</strong>
-                    <p style="color:#3b82f6; font-size:0.78rem; margin:0;">فعل إشعارات الجهاز لتصلك قرارات القبول والفرق مباشرة على شاشة هاتفك</p>
+                    <strong style="color:#1e40af; font-size:0.9rem; display:block; margin-bottom:0.2rem;">الإشعارات غير مفعلة</strong>
+                    <p style="color:#3b82f6; font-size:0.78rem; margin:0;">فعل الاشعارات لتصلك التنبيهات على شاشة جهازك</p>
                 </div>
                 <button class="btn btn-primary" style="padding:0.4rem 0.9rem; font-size:0.8rem;" onclick="enablePushNotificationsFromCenter()">
-                    تفعيل إشعارات الهاتف
+                   تفعيل الاشعارات
                 </button>
             </div>
         ` : ''}
@@ -1156,14 +1157,14 @@ async function enablePushNotificationsFromCenter() {
     const permission = await Notification.requestPermission();
 
     if (permission === 'granted') {
-        showToast('تم تفعيل إشعارات الهاتف بنجاح! ستصلك التنبيهات على شاشتك', 'success');
+        showToast('تم تفعيل الاشعارات', 'success');
         const banner = document.getElementById('bannerPushPrompt');
         if (banner) banner.style.display = 'none';
 
         // إطلاق إشعار تجريبي فوري لتأكيد التفعيل
-        triggerSystemNotification('منصة حاجب', 'تم تفعيل إشعارات النظام بنجاح على هاتفك');
+        triggerSystemNotification('HAJIB EVENT', 'تم تفعيل إشعارات النظام بنجاح على هاتفك');
     } else {
-        showToast('تم رفض الإذن. يمكنك تفعيله من إعدادات المتصفح في هاتفك', 'error');
+        showToast('يمكنك تفعيل الاشعارات من اعدادات المتصفح', 'error');
     }
 }
 
