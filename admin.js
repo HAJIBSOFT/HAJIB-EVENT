@@ -589,9 +589,34 @@ async function openEventFullManageView(eventId) {
 
 async function setApplicantStatus(id, st, eventId) {
     const db = getDb();
+    
+    // جلب معرف الموظف وبيانات الفعالية لإرسال الإشعار له
+    const { data: app } = await db
+        .from('HAJIBEVENT-applications')
+        .select(`freelancer_id, event:event_id(title)`)
+        .eq('id', id)
+        .single();
+
+    // تحديث حالة الطلب
     await db.from('HAJIBEVENT-applications').update({ status: st }).eq('id', id);
-    showToast('تم تحديث حالة المرشح بنجاح', 'success');
-    openEventFullManageView(eventId);
+    showToast(`تم ${st === 'approved' ? 'قبول' : 'رفض'} المرشح بنجاح`, 'info');
+
+    // إرسال إشعار فوري لهاتف الموظف
+    if (app && app.freelancer_id) {
+        const isAppr = st === 'approved';
+        await db.from('HAJIBEVENT-notifications').insert({
+            user_id: app.freelancer_id,
+            event_id: eventId,
+            title: isAppr ? 'تم قبولك في الفعالية' : 'تحديث بخصوص طلب التقديم',
+            message: isAppr 
+                ? `تهانينا! تم قبولك رسمياً في تنظيم فعالية (${app.event?.title}). يمكنك الآن الاطلاع على التفاصيل وفريقك.`
+                : `نعتذر منك، لم يتم قبول طلبك في فعالية (${app.event?.title}). نتمنى لك التوفيق في الفعاليات القادمة.`
+        });
+    }
+
+    if (AdminState.activeEventId) {
+        openEventFullManageView(eventId);
+    }
 }
 
 async function toggleHideEvent(id, current) {
@@ -1505,6 +1530,13 @@ async function handleSaveTeamSubmit(e, eventId) {
     closeModal();
     showToast('تم إنشاء الفريق وتعيين المشرف والأعضاء بنجاح', 'success');
     openEventFullManageView(eventId);
+	// إشعار الموظف بانضمامه لفريق عمل ميداني
+await db.from('HAJIBEVENT-notifications').insert({
+    user_id: staffId,
+    event_id: eventId,
+    title: 'تم تعيينك في فريق عمل',
+    message: `تم توزيعك رسمياً ضمن (${teamName}) للفعالية. تفقد بطاقة مشرفك الميداني للتواصل والتنسيق.`
+});
 }
 
 // حذف الفريق وإرجاع موظفيه إلى قائمة غير المعينين
@@ -1620,15 +1652,30 @@ async function openAssignSingleStaffModal(appId, eventId) {
     openModal(html);
 }
 
+// تعيين موظف لفريق وإرسال إشعار فوري له
 async function handleAssignSingleStaffSubmit(e, appId, eventId) {
     e.preventDefault();
     const db = getDb();
     const teamId = document.getElementById('singleAssignTeamSelect').value;
 
+    // 1. تحديث تعيين الفريق للموظف
     await db.from('HAJIBEVENT-applications').update({ team_id: teamId }).eq('id', appId);
 
+    // 2. جلب اسم الفريق واسم الفعالية والموظف لإرسال الإشعار
+    const { data: team } = await db.from('HAJIBEVENT-teams').select('team_name').eq('id', teamId).single();
+    const { data: app } = await db.from('HAJIBEVENT-applications').select('freelancer_id, event:event_id(title)').eq('id', appId).single();
+
+    if (app && app.freelancer_id && team) {
+        await db.from('HAJIBEVENT-notifications').insert({
+            user_id: app.freelancer_id,
+            event_id: eventId,
+            title: 'تم تعيينك في فريق عمل ميداني',
+            message: `تم توزيعك رسمياً ضمن (${team.team_name}) في فعالية (${app.event?.title}). تفقد بطاقة مشرفك للتواصل والتنسيق.`
+        });
+    }
+
     closeModal();
-    showToast('تم تعيين الموظف للفريق بنجاح', 'success');
+    showToast('تم تعيين الموظف للفريق وإرسال إشعار له بنجاح', 'success');
     openEventFullManageView(eventId);
 }
 // دالة إرسال رسالة واتساب منسقة لمشرف التيم تحتوي على أسماء وأرقام كوادره
