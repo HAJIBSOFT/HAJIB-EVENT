@@ -101,12 +101,21 @@ function updateNavbar() {
     const av = AppState.profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
     nav.innerHTML = `
        
+	    <button type="button" class="nav-bell-btn" id="btnNavBell" onclick="openNotificationsCenter()" title="مركز الإشعارات">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+            </svg>
+            <span class="bell-badge" id="bellUnreadBadge" style="display: none;">0</span>
+        </button>
+	   
         <div class="nav-avatar-pill" onclick="routeView('profile')">
             <img src="${av}" class="nav-avatar-img" alt="">
             <span class="nav-avatar-name"></span>
         </div>
        
     `;
+	 // جلب عدد الإشعارات غير المقروءة فوراً
+    checkUnreadNotificationsCount();
 }
 
 async function handleLogout() {
@@ -1038,6 +1047,153 @@ function triggerSystemNotification(title, message) {
         }
     }
 }
+
+
+
+// ==========================================
+// مركز الإشعارات الذكي (داخل التطبيق + إشعارات النظام)
+// ==========================================
+
+// 1. فحص وتحديث عدد الإشعارات غير المقروءة على الجرس
+async function checkUnreadNotificationsCount() {
+    if (!AppState.user) return;
+    const db = getDb();
+    if (!db) return;
+
+    const { count } = await db
+        .from('HAJIBEVENT-notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', AppState.user.id)
+        .eq('is_read', false);
+
+    const badge = document.getElementById('bellUnreadBadge');
+    if (badge) {
+        if (count && count > 0) {
+            badge.innerText = count > 9 ? '+9' : count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// 2. فتح نافذة مركز الإشعارات عند الضغط على الجرس
+async function openNotificationsCenter() {
+    if (!AppState.user) return;
+    const db = getDb();
+
+    // جلب سجل إشعارات المستخدم
+    const { data: notifications } = await db
+        .from('HAJIBEVENT-notifications')
+        .select('*')
+        .eq('user_id', AppState.user.id)
+        .order('created_at', { ascending: false });
+
+    // فحص هل إشعارات المتصفح/الهاتف مفعلة أم لا
+    const isPushEnabled = ('Notification' in window && Notification.permission === 'granted');
+
+    const html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid var(--border-subtle);">
+            <h3 style="margin:0; font-size:1.2rem;">مركز الإشعارات والتنبيهات</h3>
+            <span style="font-size:0.8rem; color:var(--text-muted);">${(notifications || []).length} إشعار مسجل</span>
+        </div>
+
+        <!-- بطاقة تنبيه لتفعيل إشعارات الهاتف تظهر إذا لم تكن مفعلة -->
+        ${!isPushEnabled ? `
+            <div class="notif-permission-banner" id="bannerPushPrompt">
+                <div>
+                    <strong style="color:#1e40af; font-size:0.9rem; display:block; margin-bottom:0.2rem;">إشعارات الهاتف غير مفعلة</strong>
+                    <p style="color:#3b82f6; font-size:0.78rem; margin:0;">فعل إشعارات الجهاز لتصلك قرارات القبول والفرق مباشرة على شاشة هاتفك</p>
+                </div>
+                <button class="btn btn-primary" style="padding:0.4rem 0.9rem; font-size:0.8rem;" onclick="enablePushNotificationsFromCenter()">
+                    تفعيل إشعارات الهاتف
+                </button>
+            </div>
+        ` : ''}
+
+        <!-- قائمة الإشعارات المسجلة داخل التطبيق -->
+        <div style="max-height: 420px; overflow-y: auto;">
+            ${(!notifications || notifications.length === 0) ? `
+                <div style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
+                    <p style="font-size:0.9rem;">لا توجد إشعارات مسجلة لديك حتى الآن</p>
+                </div>
+            ` : `
+                ${notifications.map(n => `
+                    <div class="notif-item ${!n.is_read ? 'unread' : ''}">
+                        <div class="notif-header">
+                            <strong style="font-size:0.92rem; color:var(--text-primary);">${n.title}</strong>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${new Date(n.created_at).toLocaleDateString('ar-SA')} - ${new Date(n.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5; margin:0;">
+                            ${n.message}
+                        </p>
+                    </div>
+                `).join('')}
+            `}
+        </div>
+    `;
+
+    openModal(html);
+
+    // تمييز كافة الإشعارات كمقروءة وتصفير الشارة الحمراء
+    await db
+        .from('HAJIBEVENT-notifications')
+        .update({ is_read: true })
+        .eq('user_id', AppState.user.id)
+        .eq('is_read', false);
+
+    const badge = document.getElementById('bellUnreadBadge');
+    if (badge) badge.style.display = 'none';
+}
+
+// 3. دالة تفعيل إشعارات الهاتف عند نقر الزر داخل القائمة
+async function enablePushNotificationsFromCenter() {
+    if (!('Notification' in window)) {
+        return showToast('متصفحك لا يدعم إشعارات النظام', 'error');
+    }
+
+    // طلب الإذن الحقيقي من المتصفح (مسموح به الآن لأنه جاء بنقرة زر مباشرة)
+    const permission = await Notification.requestPermission();
+
+    if (permission === 'granted') {
+        showToast('تم تفعيل إشعارات الهاتف بنجاح! ستصلك التنبيهات على شاشتك', 'success');
+        const banner = document.getElementById('bannerPushPrompt');
+        if (banner) banner.style.display = 'none';
+
+        // إطلاق إشعار تجريبي فوري لتأكيد التفعيل
+        triggerSystemNotification('منصة حاجب', 'تم تفعيل إشعارات النظام بنجاح على هاتفك');
+    } else {
+        showToast('تم رفض الإذن. يمكنك تفعيله من إعدادات المتصفح في هاتفك', 'error');
+    }
+}
+
+// تحديث الاستماع اللحظي ليشمل تحديث عداد الجرس فوراً
+function setupRealtimeNotifications(userId) {
+    const db = getDb();
+    if (!db) return;
+
+    db.channel(`user-notifications-${userId}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'HAJIBEVENT-notifications',
+            filter: `user_id=eq.${userId}`
+        }, (payload) => {
+            const notif = payload.new;
+            // إظهار إشعار النظام المعتمد
+            triggerSystemNotification(notif.title, notif.message);
+            // إظهار تنبيه داخلي سريع
+            showToast(`${notif.title}: ${notif.message}`, 'info');
+            // تحديث الشارة الحمراء على الجرس فوراً
+            checkUnreadNotificationsCount();
+        })
+        .subscribe();
+}
+
+// تصدير الدوال الجديدة للنطاق العام
+window.openNotificationsCenter = openNotificationsCenter;
+window.enablePushNotificationsFromCenter = enablePushNotificationsFromCenter;
+window.checkUnreadNotificationsCount = checkUnreadNotificationsCount;
 
 // تصدير الدوال للنطاق العام
 window.renderResetPasswordScreen = renderResetPasswordScreen;
