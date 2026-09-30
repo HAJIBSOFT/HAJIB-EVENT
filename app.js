@@ -397,16 +397,43 @@ async function renderEvents(container) {
     container.innerHTML = html;
 }
 // دالة عرض تفاصيل الفعالية للفريلانسر المحدثة
+// دالة عرض تفاصيل الفعالية مع بطاقة المشرف والفريق للموظف المقبول
 async function renderDetail(container, eventId) {
     container.innerHTML = '<div style="text-align:center; padding:3rem;"><p>جاري التحميل...</p></div>';
     const db = getDb();
     const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
-    let userApp = null, logs = [];
+    
+    let userApp = null;
+    let logs = [];
+    let userTeam = null;
 
     if (AppState.user) {
-        const { data: a } = await db.from('HAJIBEVENT-applications').select('*').eq('event_id', eventId).eq('freelancer_id', AppState.user.id).maybeSingle();
+        // 1. جلب تقديم الموظف في هذه الفعالية مع معرف الفريق التابع له
+        const { data: a } = await db
+            .from('HAJIBEVENT-applications')
+            .select('*')
+            .eq('event_id', eventId)
+            .eq('freelancer_id', AppState.user.id)
+            .maybeSingle();
         userApp = a;
-        const { data: l } = await db.from('HAJIBEVENT-attendance').select('*').eq('event_id', eventId).eq('freelancer_id', AppState.user.id).order('check_in_time', { ascending: false });
+
+        // 2. إذا كان مقبولاً وتم تعيينه لفريق، نجلب بيانات الفريق والمشرف
+        if (userApp && userApp.status === 'approved' && userApp.team_id) {
+            const { data: teamData } = await db
+                .from('HAJIBEVENT-teams')
+                .select(`id, team_name, leader:leader_id (full_name, phone, avatar_url)`)
+                .eq('id', userApp.team_id)
+                .maybeSingle();
+            userTeam = teamData;
+        }
+
+        // 3. جلب سجلات الحضور والانصراف
+        const { data: l } = await db
+            .from('HAJIBEVENT-attendance')
+            .select('*')
+            .eq('event_id', eventId)
+            .eq('freelancer_id', AppState.user.id)
+            .order('check_in_time', { ascending: false });
         logs = l || [];
     }
 
@@ -431,15 +458,79 @@ async function renderDetail(container, eventId) {
                     <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">تاريخ ووقت النهاية:</span>
                     <strong style="color:var(--brand-danger);">${endDateFormatted}</strong>
                 </div>
-                <div>
-                    <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">الموقع والنطاق:</span>
-                    <strong>${ev.city} (${ev.geofence_radius_meters} متر)</strong>
-                </div>
+				
+				
+               <div>
+    <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">موقع الفعالية:</span>
+    <div style="display:flex; align-items:center; gap:0.6rem;">
+        <strong>${ev.city}</strong>
+        ${ev.latitude && ev.longitude ? `
+            <!-- زر ملاحة دائري ذكي لفتح خرائط جوجل مباشرة -->
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${ev.latitude},${ev.longitude}" 
+               target="_blank" 
+               title="بدء الملاحة والتوجه إلى موقع الفعالية عبر خرائط Google"
+               style="width:30px; height:30px; border-radius:50%; background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.2s;"
+               onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="transform: rotate(45deg);">
+                    <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+                </svg>
+            </a>
+        ` : ''}
+    </div>
+    </div>
+				
+				
                 <div>
                     <span style="color:var(--text-muted); display:block; margin-bottom:0.2rem;">الأجر اليومي:</span>
                     <strong style="color:var(--brand-accent);">${ev.daily_rate} ريال</strong>
                 </div>
             </div>
+
+            <!-- بطاقة المشرف وفريق العمل (تظهر فقط إذا كان مقبولاً وتم تعيينه لفريق) -->
+            ${userTeam ? `
+                <div style="background:#ffffff; border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:1rem 1.3rem; margin:1.5rem 0; box-shadow:var(--shadow-soft); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.9rem;">
+                        <img src="${userTeam.leader?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" 
+                             style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #fef3c7; background:#f8fafc;" alt="">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
+                                <span class="badge" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; font-weight:700;">
+                                    ${userTeam.team_name}
+                                </span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">مشرفك الميداني المباشر</span>
+                            </div>
+                            <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">
+                                ${userTeam.leader?.full_name || 'لم يحدد مشرف بعد'}
+                            </h4>
+                        </div>
+                    </div>
+
+                    <!-- أزرار دائرية برموز نقية للاتصال والواتساب -->
+                    ${userTeam.leader?.phone ? `
+                        <div style="display:flex; align-items:center; gap:0.6rem;">
+                            <!-- زر اتصال هاتفي دائري -->
+                            <a href="tel:${userTeam.leader.phone.replace(/[^0-9]/g, '')}" 
+                               title="اتصال هاتفي بالمشرف"
+                               style="width:42px; height:42px; border-radius:50%; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.2s;"
+                               onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                    <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                                </svg>
+                            </a>
+                            
+                            <!-- زر واتساب دائري -->
+                            <a href="https://wa.me/${userTeam.leader.phone.replace(/[^0-9]/g, '')}" target="_blank"
+                               title="مراسلة المشرف عبر واتساب"
+                               style="width:42px; height:42px; border-radius:50%; background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.2s;"
+                               onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">
+                                <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+                                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm0 18.15c-1.49 0-2.95-.4-4.23-1.16l-.3-.18-3.14.82.84-3.06-.2-.31a8.03 8.03 0 0 1-1.23-4.35c0-4.46 3.63-8.09 8.09-8.09 2.16 0 4.19.84 5.72 2.37 1.53 1.53 2.37 3.56 2.37 5.72 0 4.46-3.63 8.09-8.09 8.09z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
 
             <p style="line-height:1.7; margin-bottom:1.8rem;">${ev.description}</p>
             
@@ -449,7 +540,7 @@ async function renderDetail(container, eventId) {
 
             <!-- جدول الحضور لا يظهر إلا بعد تسجيل أول حضور فعلي للموظف -->
             ${logs.length > 0 ? `
-                <h3 style="margin-top:2.5rem; font-size:1.1rem;">سجل الحضور والانصراف</h3>
+                <h3 style="margin-top:2.5rem; font-size:1.1rem;">سجل الحضور والانصراف الميداني الخاص بك</h3>
                 <div class="table-container" style="margin-top:1rem;">
                     <table class="data-table">
                         <thead><tr><th>التاريخ</th><th>تسجيل الحضور</th><th>تسجيل الانصراف</th><th>طريقة التحضير</th></tr></thead>
