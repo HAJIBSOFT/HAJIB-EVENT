@@ -1236,73 +1236,87 @@ function setupRealtimeNotifications(userId) {
 
 
 // نافذة عرض شهادة التقدير للمنظم
+// نافذة الشهادة الفخمة مع خيارات الطباعة المباشرة للآيفون والـ BLOB
 async function openCertificateModal(eventId) {
     const db = getDb();
     const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
     const p = AppState.profile;
 
     const html = `
-        <div style="text-align:center; margin-bottom:1.5rem;">
+        <div style="text-align:center; margin-bottom:1.2rem;">
             <h3>شهادة شكر وتقدير رسمية</h3>
             <p style="color:var(--text-muted); font-size:0.85rem;">معتمدة من منصة حاجب لإدارة الفعاليات والكوادر المستقلة</p>
         </div>
 
-        <!-- إطار الشهادة المعروضة داخل النافذة -->
-        <div style="background:#ffffff; border:4px double #d97706; padding:2rem; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.05); text-align:center; position:relative; overflow:hidden;">
-            <div style="position:absolute; top:10px; right:10px; font-size:0.75rem; color:#94a3b8; font-weight:700;">HAJIB TALENTS</div>
+        <!-- معاينة الشهادة بالخلفية الملكية والزخارف -->
+        <div class="cert-luxury-card">
+            <div class="cert-watermark"></div>
             
-            <h1 style="font-size:1.8rem; color:#0f172a; margin:1rem 0 0.5rem; letter-spacing:-0.5px;">شــهــادة شــكــر وتــقــديــر</h1>
-            <p style="font-size:0.85rem; color:#d97706; font-weight:600; text-transform:uppercase; margin-bottom:1.5rem;">CERTIFICATE OF APPRECIATION</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#64748b; font-weight:700; margin-bottom:1.5rem; position:relative; z-index:2;">
+                <div>منصة حاجب لإدارة الفعاليات</div>
+                <div>المملكة العربية السعودية</div>
+            </div>
 
-            <p style="font-size:0.95rem; color:#475569; line-height:1.8; margin-bottom:0.5rem;">
+            <h1 style="font-size:1.8rem; color:#0f172a; margin:0.5rem 0 0.2rem; font-weight:800; position:relative; z-index:2;">
+                شــهــادة شــكــر وتــقــديــر
+            </h1>
+            <p style="font-size:0.85rem; color:#d97706; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:1.5rem; position:relative; z-index:2;">
+                CERTIFICATE OF APPRECIATION
+            </p>
+
+            <p style="font-size:0.95rem; color:#475569; line-height:1.8; margin-bottom:0.4rem; position:relative; z-index:2;">
                 تتقدم إدارة <strong>منصة حاجب لتنظيم الفعاليات</strong> بجزيل الشكر وعظيم الامتنان للزميل:
             </p>
             
-            <h2 style="font-size:1.5rem; color:#0f172a; margin:0.4rem 0; border-bottom:2px solid #e2e8f0; display:inline-block; padding:0 2rem 0.4rem;">
+            <h2 style="font-size:1.5rem; color:#0f172a; margin:0.3rem 0; border-bottom:2px solid #0f172a; display:inline-block; padding:0 2.5rem 0.3rem; font-weight:800; position:relative; z-index:2;">
                 ${p.full_name}
             </h2>
-            <div style="font-size:0.85rem; color:#64748b; margin-top:0.4rem;">السجل المدني / رقم الهوية: <strong>${p.id_number}</strong></div>
+            <div style="font-size:0.85rem; color:#64748b; margin-top:0.3rem; position:relative; z-index:2;">
+                السجل المدني / رقم الهوية: <strong>${p.id_number}</strong>
+            </div>
 
-            <p style="font-size:0.92rem; color:#475569; line-height:1.8; margin:1.5rem 0;">
+            <p style="font-size:0.92rem; color:#475569; line-height:1.8; margin:1.2rem 0; position:relative; z-index:2;">
                 تقديراً لجهوده المتميزة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
                 <strong style="font-size:1.15rem; color:#0f172a;">${ev.title}</strong><br>
-                المقامة في مدينة <strong>${ev.city}</strong> خلال الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
+                المقامة في مدينة <strong>${ev.city}</strong> في الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
             </p>
 
-            <div style="margin-top:2.5rem; display:flex; justify-content:space-between; align-items:flex-end; padding-top:1.5rem; border-top:1px dashed #cbd5e1; font-size:0.85rem;">
+            <div style="margin-top:2rem; display:flex; justify-content:space-between; align-items:flex-end; padding:0 1.5rem; font-size:0.85rem; position:relative; z-index:2;">
                 <div style="text-align:right;">
-                    <p><strong>المشرف العام للعمليات:</strong></p>
-                    <p style="color:#64748b; margin-top:0.3rem;">منصة حاجب للفعاليات</p>
+                    <p><strong>المشرف العام الميداني</strong></p>
+                    <p style="color:#64748b; font-size:0.8rem; margin-top:0.2rem;">إدارة العمليات والتشغيل</p>
                 </div>
                 <div style="text-align:center;">
                     <div style="width:75px; height:75px; border:2px dashed #d97706; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#d97706; font-size:0.75rem; font-weight:700;">
-                        الختم الرسمي
+                        ختم الاعتماد الرسمي
                     </div>
                 </div>
                 <div style="text-align:left;">
-                    <p><strong>تاريخ الإصدار:</strong></p>
-                    <p style="color:#64748b; margin-top:0.3rem;">${new Date().toLocaleDateString('ar-SA')}</p>
+                    <p><strong>تاريخ الاعتماد</strong></p>
+                    <p style="color:#64748b; font-size:0.8rem; margin-top:0.2rem;">${new Date().toLocaleDateString('ar-SA')}</p>
                 </div>
             </div>
         </div>
 
-        <div style="margin-top:1.5rem;">
-            <button class="btn btn-primary btn-full" onclick="printOfficialCertificate('${eventId}')">
-                طباعة الشهادة الرسمية بتنسيق عالي الدقة (PDF)
+        <!-- أزرار الإجراء المتوافقة تماماً مع الآيفون -->
+        <div style="margin-top:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:0.8rem;">
+            <!-- زر الطباعة وحفظ PDF المباشر للآيفون -->
+            <button class="btn btn-primary" onclick="printCertificateDirectly('${eventId}')">
+                حفظ كـ PDF / طباعة
+            </button>
+            
+            <!-- زر فتح الشهادة عبر BLOB لمشاركتها وتنزيلها -->
+            <button class="btn btn-outline" onclick="openCertificateAsBlob('${eventId}')">
+                فتح الشهادة (رابط BLOB)
             </button>
         </div>
     `;
     openModal(html);
 }
 
-// فتح نافذة طباعة الشهادة بمقاس A4 أفقي (Landscape) فخم
-async function printOfficialCertificate(eventId) {
-    const db = getDb();
-    const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
-    const p = AppState.profile;
-
-    const printWin = window.open('', '_blank', 'width=1100,height=800');
-    printWin.document.write(`
+// 1. توليد كود HTML الكامل للشهادة بدقة عالية مع الخلفية الملكية
+function generateCertificateHTML(ev, p) {
+    return `
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
         <head>
@@ -1312,19 +1326,25 @@ async function printOfficialCertificate(eventId) {
                 @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700;800&display=swap');
                 * { box-sizing: border-box; font-family: 'Readex Pro', sans-serif; }
                 @page { size: A4 landscape; margin: 0; }
-                body { margin: 0; padding: 40px; background: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+                body { margin: 0; padding: 25px; background: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
                 .cert-container {
                     width: 100%; height: 100%; border: 12px solid #0f172a; padding: 35px; border-radius: 8px; position: relative;
                     outline: 3px solid #d97706; outline-offset: -18px; text-align: center;
+                    background: radial-gradient(circle, #ffffff 60%, #fffdfa 100%);
                 }
-                .cert-header { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 25px; }
-                h1 { font-size: 34px; color: #0f172a; margin: 10px 0 5px; font-weight: 800; letter-spacing: -1px; }
-                .sub-title { font-size: 14px; color: #d97706; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 30px; }
-                .cert-text { font-size: 18px; color: #334155; line-height: 1.8; margin-bottom: 10px; }
-                .name { font-size: 28px; color: #0f172a; font-weight: 800; margin: 15px 0 5px; border-bottom: 2px solid #0f172a; display: inline-block; padding: 0 40px 8px; }
-                .event-title { font-size: 22px; color: #0f172a; font-weight: 800; }
-                .cert-footer { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px; font-size: 14px; }
-                .stamp { width: 95px; height: 95px; border: 2px dashed #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #d97706; font-weight: 700; font-size: 12px; margin: 0 auto; }
+                .cert-container::before {
+                    content: ''; position: absolute; inset: 20px;
+                    background-image: radial-gradient(#d97706 0.75px, transparent 0.75px), radial-gradient(#d97706 0.75px, #fffdfa 0.75px);
+                    background-size: 30px 30px; background-position: 0 0, 15px 15px; opacity: 0.08; pointer-events: none;
+                }
+                .cert-header { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 20px; position: relative; z-index: 2; }
+                h1 { font-size: 32px; color: #0f172a; margin: 5px 0; font-weight: 800; letter-spacing: -1px; position: relative; z-index: 2; }
+                .sub-title { font-size: 13px; color: #d97706; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; position: relative; z-index: 2; }
+                .cert-text { font-size: 17px; color: #334155; line-height: 1.8; margin-bottom: 10px; position: relative; z-index: 2; }
+                .name { font-size: 26px; color: #0f172a; font-weight: 800; margin: 10px 0 5px; border-bottom: 2px solid #0f172a; display: inline-block; padding: 0 40px 6px; position: relative; z-index: 2; }
+                .event-title { font-size: 21px; color: #0f172a; font-weight: 800; }
+                .cert-footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px; font-size: 13px; position: relative; z-index: 2; }
+                .stamp { width: 90px; height: 90px; border: 2px dashed #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #d97706; font-weight: 700; font-size: 12px; margin: 0 auto; }
             </style>
         </head>
         <body>
@@ -1339,9 +1359,9 @@ async function printOfficialCertificate(eventId) {
 
                 <div class="cert-text">تتقدم إدارة منصة حاجب بجزيل الشكر وعظيم التقدير للزميل:</div>
                 <div class="name">${p.full_name}</div>
-                <div style="font-size: 14px; color: #64748b; margin-top: 5px;">رقم الهوية الوطنية / الإقامة: <strong>${p.id_number}</strong></div>
+                <div style="font-size: 14px; color: #64748b; margin-top: 5px; position: relative; z-index: 2;">رقم الهوية الوطنية / الإقامة: <strong>${p.id_number}</strong></div>
 
-                <div class="cert-text" style="margin-top: 25px;">
+                <div class="cert-text" style="margin-top: 20px;">
                     نظير مشاركته الفعالة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
                     <span class="event-title">${ev.title}</span><br>
                     المنعقدة في مدينة <strong>${ev.city}</strong> في الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
@@ -1363,14 +1383,58 @@ async function printOfficialCertificate(eventId) {
             </div>
         </body>
         </html>
-    `);
-    printWin.document.close();
-    printWin.focus();
-    setTimeout(() => {
-        printWin.print();
-        printWin.close();
-    }, 450);
+    `;
 }
+
+// 2. حل الآيفون الأول: الطباعة المباشرة داخل نفس الصفحة (تتجاوز حظر الـ Popups تماماً)
+async function printCertificateDirectly(eventId) {
+    const db = getDb();
+    const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
+    const p = AppState.profile;
+
+    const printContainer = document.getElementById('certificatePrintContainer');
+    if (!printContainer) return;
+
+    // حقن كود الشهادة في الصفحة الحالية
+    printContainer.innerHTML = generateCertificateHTML(ev, p);
+    
+    // تفعيل وضع طباعة الشهادة للآيفون
+    document.body.classList.add('ios-cert-printing');
+
+    setTimeout(() => {
+        window.print();
+        // إعادة الصفحة لوضعها الطبيعي بعد انتهاء نافذة الطباعة
+        setTimeout(() => {
+            document.body.classList.remove('ios-cert-printing');
+            printContainer.innerHTML = '';
+        }, 1000);
+    }, 300);
+}
+
+// 3. حل الآيفون الثاني: فتح الشهادة كرابط BLOB مستقل في ذاكرة الهاتف
+async function openCertificateAsBlob(eventId) {
+    const db = getDb();
+    const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
+    const p = AppState.profile;
+
+    const certHtml = generateCertificateHTML(ev, p);
+    
+    // إنشاء ملف Blob محلي في ذاكرة الآيفون
+    const blob = new Blob([certHtml], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+
+    // توجيه المتصفح بأمان دون حظر
+    const newTab = window.open(blobUrl, '_blank');
+    if (!newTab) {
+        // إذا حظر المتصفح الفتح في صفحة جديدة، يتم الفتح داخل نفس التبويب
+        window.location.href = blobUrl;
+    }
+}
+
+// تصدير الدوال الجديدة للنطاق العام
+window.openCertificateModal = openCertificateModal;
+window.printCertificateDirectly = printCertificateDirectly;
+window.openCertificateAsBlob = openCertificateAsBlob;
 
 // تصدير الدوال للنطاق العام
 window.openCertificateModal = openCertificateModal;
