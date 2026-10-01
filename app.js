@@ -321,26 +321,33 @@ async function handleRegSubmit(e) {
 
 // عرض الفعاليات مع إبراز الفعالية النشطة حالياً بالأعلى وفصلها
 // عرض الفعاليات مع زر الحضور والانصراف الفعلي في البطاقة النشطة
+// عرض الفعاليات مع إغلاق المنتهية وإظهار زر الشهادة لمن عمل بها
 async function renderEvents(container) {
     container.innerHTML = '<div style="text-align:center; padding:3rem 0;"><p style="color:var(--text-muted)">جاري جلب الفعاليات...</p></div>';
     const db = getDb();
     const { data: events } = await db.from('HAJIBEVENT-events').select('*').eq('is_hidden', false).order('start_date');
 
     let applications = [];
+    let attendedEventIds = [];
+
     if (AppState.user) {
+        // جلب تقديمات الموظف
         const { data: apps } = await db.from('HAJIBEVENT-applications').select('event_id, status').eq('freelancer_id', AppState.user.id);
         applications = apps || [];
+
+        // جلب معرفات الفعاليات التي حضر فيها الموظف فعلياً
+        const { data: attLogs } = await db.from('HAJIBEVENT-attendance').select('event_id').eq('freelancer_id', AppState.user.id);
+        attendedEventIds = [...new Set((attLogs || []).map(l => l.event_id))];
     }
 
     const now = new Date();
     const approvedIds = applications.filter(a => a.status === 'approved').map(a => a.event_id);
 
-    // العثور على الفعالية النشطة حالياً للمستخدم
+    // الفعالية النشطة حالياً
     const liveEvent = (events || []).find(e => {
         return approvedIds.includes(e.id) && new Date(e.start_date) <= now && new Date(e.end_date) >= now;
     });
 
-    // فحص ما إذا كان الموظف مسجل حضور حالياً في الفعالية النشطة
     let isLiveCheckedIn = false;
     if (liveEvent && AppState.user) {
         const { data: activeSession } = await db
@@ -361,16 +368,15 @@ async function renderEvents(container) {
         html += `
             <div class="hero-live-card">
                 <div style="flex: 1;">
-                   
+                  
                     <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.4rem;">${liveEvent.title}</h2>
                     <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
                         الموقع: ${liveEvent.city} | الأجر اليومي: <strong>${liveEvent.daily_rate} ريال</strong> | تنتهي في: ${new Date(liveEvent.end_date).toLocaleDateString('ar-SA')}
                     </p>
                     
                     <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
-                        <!-- زر الحضور والانصراف التفاعلي المباشر -->
                         ${isLiveCheckedIn ? `
-                            <button class="btn btn-danger" onclick="clockOut('${liveEvent.id}')">
+                           <button class="btn btn-danger" onclick="clockOut('${liveEvent.id}')">
                                تسجيل الانصراف
                             </button>
                         ` : `
@@ -379,20 +385,18 @@ async function renderEvents(container) {
                             </button>
                         `}
 
-                        
                        
                     </div>
                 </div>
 
-                <div>
-                    <div style="width: 240px; height: 140px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); cursor: pointer;" 
+               <div style="width: 240px; height: 140px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); cursor: pointer;" 
      onclick="routeView('event_detail', '${liveEvent.id}')">
     <img src="${liveEvent.image_url || 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhg2EYK-psEVdB2s-_IdyuVMejpQancsMIGMgbBg1gokaOqnaTPf17fa-3M-z4NwUQWFF-xUdJk7mUTVImEIX3CS6HfcqCgOJu_CJMYzHvyb1NZiSS13oh0ZgREkPcpCvREyMCUXc0Tl_96d4oaCOP1bNewNAYId2OBUkRB-whj0VSkvgfcp2-Zs-Ca7vUF/s1408/Gemini_Generated_Image_3f8rg13f8rg13f8r.jfif'}" style="width:100%; height:100%; object-fit:cover;" alt="">
-</div> </div>
+</div> 
             </div>
 
             <div class="section-divider">
-                <span>بقية الفعاليات المتاحة</span>
+                <span>بقية الفعاليات</span>
             </div>
         `;
     }
@@ -400,14 +404,19 @@ async function renderEvents(container) {
     html += `<div class="events-grid">`;
     otherEvents.forEach(e => {
         const userApp = applications.find(a => a.event_id === e.id);
+        const isEnded = new Date(e.end_date) < now;
+        const isApprovedWorker = userApp && userApp.status === 'approved' && attendedEventIds.includes(e.id);
+
         let badge = '';
-        if (userApp) {
+        if (isEnded) {
+            badge = '<span class="badge" style="background:#f1f5f9; color:#64748b;">فعالية منتهية</span>';
+        } else if (userApp) {
             badge = userApp.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' :
                     (userApp.status === 'rejected' ? '<span class="badge badge-danger">مرفوض</span>' : '<span class="badge badge-warning">قيد المراجعة</span>');
         }
 
         html += `
-            <div class="event-card">
+            <div class="event-card" style="${isEnded ? 'opacity:0.9; background:#fafafa;' : ''}">
                 <div class="event-card-media">
                     <img src="${e.image_url || 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhg2EYK-psEVdB2s-_IdyuVMejpQancsMIGMgbBg1gokaOqnaTPf17fa-3M-z4NwUQWFF-xUdJk7mUTVImEIX3CS6HfcqCgOJu_CJMYzHvyb1NZiSS13oh0ZgREkPcpCvREyMCUXc0Tl_96d4oaCOP1bNewNAYId2OBUkRB-whj0VSkvgfcp2-Zs-Ca7vUF/s1408/Gemini_Generated_Image_3f8rg13f8rg13f8r.jfif'}" alt="">
                 </div>
@@ -416,12 +425,31 @@ async function renderEvents(container) {
                         <h3 class="event-card-title">${e.title}</h3>
                         ${badge}
                     </div>
-                    <p style="color:var(--text-secondary); font-size:0.86rem; margin-bottom:1.2rem;">
-                        المدينة: ${e.city} | الأجر: ${e.daily_rate} ريال / اليوم
-                    </p>
-                    <button class="btn btn-outline btn-full" style="margin-top:auto;" onclick="routeView('event_detail', '${e.id}')">
-                        استعراض التفاصيل والعقد
-                    </button>
+                    
+                    <div style="font-size:0.84rem; color:var(--text-secondary); display:flex; flex-direction:column; gap:0.35rem; margin-bottom:1.2rem; line-height:1.5;">
+                        <div>المدينة: <strong>${e.city}</strong> | الأجر: <strong style="color:var(--brand-accent);">${e.daily_rate} ريال / اليوم</strong></div>
+                        <div style="color:var(--text-muted); font-size:0.8rem;">
+                            الفترة: <strong>${new Date(e.start_date).toLocaleDateString('ar-SA')}</strong> إلى <strong>${new Date(e.end_date).toLocaleDateString('ar-SA')}</strong>
+                        </div>
+                    </div>
+
+                    <!-- أزرار الإجراء حسب حالة الفعالية والموظف -->
+                    <div style="margin-top:auto;">
+                        ${isEnded ? `
+                            ${isApprovedWorker ? `
+                                <!-- زر عرض الشهادة لمن عمل بالفعالية المنتهية -->
+                                <button class="btn btn-full" style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-weight:700;" onclick="openCertificateModal('${e.id}')">
+                                    عرض شهادة الشكر والتقدير
+                                </button>
+                            ` : `
+                              
+                            `}
+                        ` : `
+                            <button class="btn btn-outline btn-full" onclick="routeView('event_detail', '${e.id}')">
+                                استعراض التفاصيل والعقد
+                            </button>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -596,14 +624,41 @@ async function renderDetail(container, eventId) {
 }
 
 // فحص موعد الفعالية بدقة قبل السماح بالتحضير
+// فحص حالة الفعالية وأزرار التقديم والشهادة
 function renderAction(ev, userApp, isActive) {
     if (!AppState.user) return `<button class="btn btn-primary" onclick="routeView('auth')">يرجى تسجيل الدخول للتقديم</button>`;
     
+    const now = new Date();
+    const startTime = new Date(ev.start_date);
+    const endTime = new Date(ev.end_date);
+    const isEnded = now > endTime;
+
+    // إذا كانت الفعالية منتهية
+    if (isEnded) {
+        if (userApp && userApp.status === 'approved') {
+            return `
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:1.2rem; border-radius:var(--radius-sm); text-align:center;">
+                    <h4 style="color:#166534; margin-bottom:0.4rem;">شكراً لمشاركتك المتميزة في إنجاح الفعالية</h4>
+                    <p style="color:#15803d; font-size:0.85rem; margin-bottom:1rem;">انتهت الفعالية بنجاح، وتم اعتماد وإصدار شهادة الشكر والتقدير لمشاركتك التنظيمية الميدانية.</p>
+                    <button class="btn btn-primary" onclick="openCertificateModal('${ev.id}')">
+                        عرض وطباعة شهادة الشكر والتقدير
+                    </button>
+                </div>
+            `;
+        } else {
+            return `
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; color:#64748b; padding:1rem; border-radius:var(--radius-sm); text-align:center; font-size:0.9rem;">
+                    انتهت فترة تشغيل هذه الفعالية رسمياً، ولا يمكن التقديم عليها حالياً.
+                </div>
+            `;
+        }
+    }
+
     if (!userApp) {
         return `
             <div>
                 <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.9rem; margin-bottom:1rem;">
-                    <input type="checkbox" id="contractAgree"> اوافق على الشروط والاحكام
+                    <input type="checkbox" id="contractAgree"> أوافق على شروط التعاقد والمهام التنظيمية
                 </label>
                 <button class="btn btn-primary" onclick="applyEvent('${ev.id}')">تأكيد التقديم للفعالية</button>
             </div>
@@ -613,11 +668,6 @@ function renderAction(ev, userApp, isActive) {
     if (userApp.status === 'pending') return `<span class="badge badge-warning">طلبك قيد المراجعة لدى إدارة الفعالية</span>`;
     if (userApp.status === 'rejected') return `<span class="badge badge-danger">نعتذر، لم يتم قبولك لهذه الفعالية</span>`;
 
-    // التحقق الصارم من توقيت الفعالية
-    const now = new Date();
-    const startTime = new Date(ev.start_date);
-    const endTime = new Date(ev.end_date);
-
     if (now < startTime) {
         return `
             <div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:1rem; border-radius:var(--radius-sm); font-size:0.9rem;">
@@ -626,19 +676,11 @@ function renderAction(ev, userApp, isActive) {
         `;
     }
 
-    if (now > endTime) {
-        return `
-            <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:1rem; border-radius:var(--radius-sm); font-size:0.9rem;">
-                انتهت فترة تشغيل الفعالية رسمياً.
-            </div>
-        `;
-    }
-
-    // المستخدم مقبول والفعالية جارية الآن
+    // الفعالية جارية الآن
     if (isActive) {
-        return `<button class="btn btn-danger" onclick="clockOut('${ev.id}')">تسجيل الانصراف</button>`;
+        return `<button class="btn btn-danger" onclick="clockOut('${ev.id}')">تسجيل الانصراف والخروج الآن</button>`;
     } else {
-        return `<button class="btn btn-primary" onclick="clockIn('${ev.id}', ${ev.latitude}, ${ev.longitude}, ${ev.geofence_radius_meters})">تسجيل الحضور</button>`;
+        return `<button class="btn btn-primary" onclick="clockIn('${ev.id}', ${ev.latitude}, ${ev.longitude}, ${ev.geofence_radius_meters})">تسجيل الحضور الذكي الميداني (GPS)</button>`;
     }
 }
 
@@ -1190,6 +1232,149 @@ function setupRealtimeNotifications(userId) {
         })
         .subscribe();
 }
+
+
+
+// نافذة عرض شهادة التقدير للمنظم
+async function openCertificateModal(eventId) {
+    const db = getDb();
+    const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
+    const p = AppState.profile;
+
+    const html = `
+        <div style="text-align:center; margin-bottom:1.5rem;">
+            <h3>شهادة شكر وتقدير رسمية</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem;">معتمدة من منصة حاجب لإدارة الفعاليات والكوادر المستقلة</p>
+        </div>
+
+        <!-- إطار الشهادة المعروضة داخل النافذة -->
+        <div style="background:#ffffff; border:4px double #d97706; padding:2rem; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.05); text-align:center; position:relative; overflow:hidden;">
+            <div style="position:absolute; top:10px; right:10px; font-size:0.75rem; color:#94a3b8; font-weight:700;">HAJIB TALENTS</div>
+            
+            <h1 style="font-size:1.8rem; color:#0f172a; margin:1rem 0 0.5rem; letter-spacing:-0.5px;">شــهــادة شــكــر وتــقــديــر</h1>
+            <p style="font-size:0.85rem; color:#d97706; font-weight:600; text-transform:uppercase; margin-bottom:1.5rem;">CERTIFICATE OF APPRECIATION</p>
+
+            <p style="font-size:0.95rem; color:#475569; line-height:1.8; margin-bottom:0.5rem;">
+                تتقدم إدارة <strong>منصة حاجب لتنظيم الفعاليات</strong> بجزيل الشكر وعظيم الامتنان للزميل:
+            </p>
+            
+            <h2 style="font-size:1.5rem; color:#0f172a; margin:0.4rem 0; border-bottom:2px solid #e2e8f0; display:inline-block; padding:0 2rem 0.4rem;">
+                ${p.full_name}
+            </h2>
+            <div style="font-size:0.85rem; color:#64748b; margin-top:0.4rem;">السجل المدني / رقم الهوية: <strong>${p.id_number}</strong></div>
+
+            <p style="font-size:0.92rem; color:#475569; line-height:1.8; margin:1.5rem 0;">
+                تقديراً لجهوده المتميزة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
+                <strong style="font-size:1.15rem; color:#0f172a;">${ev.title}</strong><br>
+                المقامة في مدينة <strong>${ev.city}</strong> خلال الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
+            </p>
+
+            <div style="margin-top:2.5rem; display:flex; justify-content:space-between; align-items:flex-end; padding-top:1.5rem; border-top:1px dashed #cbd5e1; font-size:0.85rem;">
+                <div style="text-align:right;">
+                    <p><strong>المشرف العام للعمليات:</strong></p>
+                    <p style="color:#64748b; margin-top:0.3rem;">منصة حاجب للفعاليات</p>
+                </div>
+                <div style="text-align:center;">
+                    <div style="width:75px; height:75px; border:2px dashed #d97706; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#d97706; font-size:0.75rem; font-weight:700;">
+                        الختم الرسمي
+                    </div>
+                </div>
+                <div style="text-align:left;">
+                    <p><strong>تاريخ الإصدار:</strong></p>
+                    <p style="color:#64748b; margin-top:0.3rem;">${new Date().toLocaleDateString('ar-SA')}</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:1.5rem;">
+            <button class="btn btn-primary btn-full" onclick="printOfficialCertificate('${eventId}')">
+                طباعة الشهادة الرسمية بتنسيق عالي الدقة (PDF)
+            </button>
+        </div>
+    `;
+    openModal(html);
+}
+
+// فتح نافذة طباعة الشهادة بمقاس A4 أفقي (Landscape) فخم
+async function printOfficialCertificate(eventId) {
+    const db = getDb();
+    const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
+    const p = AppState.profile;
+
+    const printWin = window.open('', '_blank', 'width=1100,height=800');
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>شهادة شكر وتقدير - ${p.full_name}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700;800&display=swap');
+                * { box-sizing: border-box; font-family: 'Readex Pro', sans-serif; }
+                @page { size: A4 landscape; margin: 0; }
+                body { margin: 0; padding: 40px; background: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+                .cert-container {
+                    width: 100%; height: 100%; border: 12px solid #0f172a; padding: 35px; border-radius: 8px; position: relative;
+                    outline: 3px solid #d97706; outline-offset: -18px; text-align: center;
+                }
+                .cert-header { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 25px; }
+                h1 { font-size: 34px; color: #0f172a; margin: 10px 0 5px; font-weight: 800; letter-spacing: -1px; }
+                .sub-title { font-size: 14px; color: #d97706; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 30px; }
+                .cert-text { font-size: 18px; color: #334155; line-height: 1.8; margin-bottom: 10px; }
+                .name { font-size: 28px; color: #0f172a; font-weight: 800; margin: 15px 0 5px; border-bottom: 2px solid #0f172a; display: inline-block; padding: 0 40px 8px; }
+                .event-title { font-size: 22px; color: #0f172a; font-weight: 800; }
+                .cert-footer { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px; font-size: 14px; }
+                .stamp { width: 95px; height: 95px; border: 2px dashed #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #d97706; font-weight: 700; font-size: 12px; margin: 0 auto; }
+            </style>
+        </head>
+        <body>
+            <div class="cert-container">
+                <div class="cert-header">
+                    <div>منصة حاجب لإدارة الفعاليات</div>
+                    <div>المملكة العربية السعودية</div>
+                </div>
+
+                <h1>شــهــادة شــكــر وتــقــديــر</h1>
+                <div class="sub-title">Certificate of Appreciation</div>
+
+                <div class="cert-text">تتقدم إدارة منصة حاجب بجزيل الشكر وعظيم التقدير للزميل:</div>
+                <div class="name">${p.full_name}</div>
+                <div style="font-size: 14px; color: #64748b; margin-top: 5px;">رقم الهوية الوطنية / الإقامة: <strong>${p.id_number}</strong></div>
+
+                <div class="cert-text" style="margin-top: 25px;">
+                    نظير مشاركته الفعالة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
+                    <span class="event-title">${ev.title}</span><br>
+                    المنعقدة في مدينة <strong>${ev.city}</strong> في الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
+                </div>
+
+                <div class="cert-footer">
+                    <div>
+                        <p><strong>المشرف العام الميداني</strong></p>
+                        <p style="margin-top: 5px; color: #64748b;">إدارة الفعاليات والتشغيل</p>
+                    </div>
+                    <div>
+                        <div class="stamp">ختم الاعتماد الرسمي</div>
+                    </div>
+                    <div>
+                        <p><strong>تاريخ الاعتماد</strong></p>
+                        <p style="margin-top: 5px; color: #64748b;">${new Date().toLocaleDateString('ar-SA')}</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => {
+        printWin.print();
+        printWin.close();
+    }, 450);
+}
+
+// تصدير الدوال للنطاق العام
+window.openCertificateModal = openCertificateModal;
+window.printOfficialCertificate = printOfficialCertificate;
 
 // تصدير الدوال الجديدة للنطاق العام
 window.openNotificationsCenter = openNotificationsCenter;
