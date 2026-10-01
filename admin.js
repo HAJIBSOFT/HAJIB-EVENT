@@ -706,6 +706,7 @@ async function handleManualAttendanceSubmit(e, eventId) {
 // ==========================================
 // 4. إنشاء وتعديل الفعاليات (مع خرائط جوجل)
 // ==========================================
+// نافذة إضافة وتعديل الفعالية مع يومية المنظم ويومية المشرف
 async function openEventModal(eventId = null) {
     const db = getDb();
     let ev = null;
@@ -728,10 +729,17 @@ async function openEventModal(eventId = null) {
                         ${SAUDI_REGIONS.map(c => `<option value="${c}" ${ev && ev.city === c ? 'selected' : ''}>${c}</option>`).join('')}
                     </select>
                 </div>
+
+                <!-- تقسيم اليوميات: منظم ومشرف -->
                 <div class="form-group">
-                    <label>الأجر اليومي (ريال)</label>
-                    <input type="number" id="mRate" class="form-control" value="${ev ? ev.daily_rate : ''}" required>
+                    <label>يومية المنظم الميداني (ريال)</label>
+                    <input type="number" id="mRate" class="form-control" value="${ev ? ev.daily_rate : ''}" required placeholder="مثال: 200">
                 </div>
+                <div class="form-group">
+                    <label>يومية مشرف الفريق (ريال)</label>
+                    <input type="number" id="mSupervisorRate" class="form-control" value="${ev ? (ev.supervisor_daily_rate || ev.daily_rate) : ''}" required placeholder="مثال: 350">
+                </div>
+
                 <div class="form-group">
                     <label>تاريخ البدء</label>
                     <input type="datetime-local" id="mStart" class="form-control" required value="${ev ? new Date(ev.start_date).toISOString().slice(0,16) : ''}">
@@ -741,11 +749,11 @@ async function openEventModal(eventId = null) {
                     <input type="datetime-local" id="mEnd" class="form-control" required value="${ev ? new Date(ev.end_date).toISOString().slice(0,16) : ''}">
                 </div>
                 <div class="form-group col-span-2">
-                    <label>موقع الفعالية من خرائط جوجل (الصق الرابط أو الإحداثيات مباشرة)</label>
+                    <label>موقع الفعالية من خرائط جوجل (الصق الرابط أو الإحداثيات)</label>
                     <input type="text" id="mGmaps" class="form-control" placeholder="مثال: https://maps.google.com/?q=24.7136,46.6753 أو 24.7136, 46.6753" value="${ev ? `${ev.latitude}, ${ev.longitude}` : ''}" required>
                 </div>
                 <div class="form-group">
-                    <label>نصف قطر النطاق المسموح (متر)</label>
+                    <label>النطاق المسموح (متر)</label>
                     <input type="number" id="mRadius" class="form-control" value="${ev ? ev.geofence_radius_meters : 350}" required>
                 </div>
                 <div class="form-group">
@@ -772,6 +780,7 @@ async function handleSaveEvent(e, id) {
         title: document.getElementById('mTitle').value.trim(),
         city: document.getElementById('mCity').value,
         daily_rate: parseFloat(document.getElementById('mRate').value),
+        supervisor_daily_rate: parseFloat(document.getElementById('mSupervisorRate').value), // حفظ يومية المشرف
         start_date: new Date(document.getElementById('mStart').value),
         end_date: new Date(document.getElementById('mEnd').value),
         latitude: coords.lat,
@@ -1996,30 +2005,28 @@ async function deleteAttendanceRecord(logId, eventId) {
     showToast('تم حذف السجل', 'success');
     runEventAttendanceFilter(eventId);
 }
-
-// طباعة كشف الحضور والتواقيع والمشرفين للفعالية مع حساب الجلسات واستثناء أقل من ساعة
-// دالة طباعة كشف استحقاقات الفعالية المجمع والموجز (ملخص لكل موظف مجمع حسب فرقه ومشرفيه)
+// دالة طباعة مسير الرواتب والمستحقات البنكية المعتمد
 async function printEventAttendanceReport(eventId) {
     const db = getDb();
-    showToast('جاري تجميع البيانات وتجهيز مسير المستحقات للطباعة...', 'info');
+    showToast('جاري تجميع البيانات والآيبانات وتجهيز المسير المالي...', 'info');
 
-    // 1. جلب بيانات الفعالية
+    // 1. جلب بيانات الفعالية بما فيها يومية المنظم ويومية المشرف
     const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
 
-    // 2. جلب الفرق ومشرفيها التابعين لهذه الفعالية
+    // 2. جلب الفرق لمعرفة من هم المشرفون
     const { data: teams } = await db
         .from('HAJIBEVENT-teams')
-        .select(`id, team_name, leader:leader_id(full_name, phone)`)
+        .select(`id, team_name, leader_id, leader:leader_id(full_name, phone)`)
         .eq('event_id', eventId);
 
-    // 3. جلب التقديمات المعتمدة لمعرفة فريق كل موظف
+    // 3. جلب الموظفين مع حقل bio الذي يحتوي على الآيبان البنكي
     const { data: apps } = await db
-    .from('HAJIBEVENT-applications')
-    .select(`team_id, freelancer_id, freelancer:freelancer_id(id, full_name, id_number, phone, bio)`)
+        .from('HAJIBEVENT-applications')
+        .select(`team_id, freelancer_id, freelancer:freelancer_id(id, full_name, id_number, phone, bio)`)
         .eq('event_id', eventId)
         .eq('status', 'approved');
 
-    // 4. تصفية سجلات الحضور: استبعاد الجلسات الملغية (أقل من ساعة) والجلسات القائمة
+    // 4. استبعاد الجلسات الملغية (أقل من ساعة) والجلسات القائمة
     const validLogs = currentEventFilteredLogs.filter(l => {
         if (!l.check_out_time) return false;
         const dur = calculateWorkDuration(l.check_in_time, l.check_out_time);
@@ -2027,129 +2034,151 @@ async function printEventAttendanceReport(eventId) {
     });
 
     if (validLogs.length === 0) {
-        return showToast('لا توجد جلسات حضور مكتملة ومعتمدة لطباعتها في التقرير', 'error');
+        return showToast('لا توجد جلسات حضور مكتملة ومعتمدة لطباعتها في المسير', 'error');
     }
 
-    // 5. تجميع الجلسات لكل موظف في سطر واحد (حساب إجمالي الجلسات وإجمالي الساعات بدون تكرار)
+    // تحديد قائمة بمعرفات المشرفين في هذه الفعالية
+    const supervisorIds = (teams || []).map(t => t.leader_id).filter(Boolean);
+
+    // الأجور المقررة
+    const organizerRate = parseFloat(ev.daily_rate) || 0;
+    const supervisorRate = parseFloat(ev.supervisor_daily_rate) || organizerRate;
+
+    // 5. تجميع الجلسات لكل موظف واحتساب المستحقات المالية
     const aggregatedStaff = {};
+    let totalOrganizerAmount = 0;
+    let totalSupervisorAmount = 0;
 
     validLogs.forEach(log => {
         const fId = log.freelancer_id;
-        const diffMs = new Date(log.check_out_time) - new Date(log.check_in_time);
-        const diffMins = Math.max(0, Math.floor(diffMs / (1000 * 60)));
 
         if (!aggregatedStaff[fId]) {
-            // ربط الموظف بفريقه ومشرفه
             const userApp = (apps || []).find(a => a.freelancer_id === fId);
             const teamId = userApp ? userApp.team_id : null;
+            const isSupervisor = supervisorIds.includes(fId);
 
             aggregatedStaff[fId] = {
                 freelancer_id: fId,
                 full_name: log.freelancer?.full_name || 'غير معروف',
                 id_number: log.freelancer?.id_number || '-',
-                phone: log.freelancer?.phone || '-',
-				 bio: userApp?.freelancer?.bio || '', 
+                iban: userApp?.freelancer?.bio || 'لم يسجل آيبان', // جلب رقم الحساب البنكي
+                is_supervisor: isSupervisor,
+                role_title: isSupervisor ? 'مشرف فريق' : 'منظم ميداني',
+                daily_rate: isSupervisor ? supervisorRate : organizerRate,
                 team_id: teamId,
-                sessionCount: 0,
-                totalMinutes: 0
+                sessionCount: 0
             };
         }
 
         aggregatedStaff[fId].sessionCount += 1;
-        aggregatedStaff[fId].totalMinutes += diffMins;
     });
 
+    // احتساب الإجماليات المالية للمسير
     const staffList = Object.values(aggregatedStaff);
+    staffList.forEach(s => {
+        const totalDue = s.sessionCount * s.daily_rate;
+        s.totalDue = totalDue;
+        if (s.is_supervisor) {
+            totalSupervisorAmount += totalDue;
+        } else {
+            totalOrganizerAmount += totalDue;
+        }
+    });
 
-    // 6. تجهيز نافذة الطباعة المنبثقة بتنسيق موجز وأنيق
-    const printWin = window.open('', '_blank', 'width=1000,height=800');
+    const grandTotal = totalOrganizerAmount + totalSupervisorAmount;
+
+    // 6. تجهيز نافذة الطباعة المنبثقة
+    const printWin = window.open('', '_blank', 'width=1100,height=800');
     printWin.document.write(`
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
         <head>
             <meta charset="UTF-8">
-            <title>مسير استحقاقات الكوادر الميدانية - ${ev.title}</title>
+            <title>مسير تحويل مستحقات الفعالية - ${ev.title}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700&display=swap');
                 * { box-sizing: border-box; font-family: 'Readex Pro', sans-serif; }
                 body { padding: 30px; color: #0f172a; background: #fff; }
-                .report-header { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
+                .report-header { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
                 h1 { margin: 0 0 4px; font-size: 19px; color: #0f172a; }
                 p { margin: 2px 0; font-size: 12px; color: #475569; }
                 .team-section { border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 25px; page-break-inside: avoid; }
                 .team-section-header { background: #f8fafc; padding: 10px 14px; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center; }
-                table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                th, td { border-bottom: 1px solid #e2e8f0; padding: 8px 12px; text-align: right; }
+                table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+                th, td { border-bottom: 1px solid #e2e8f0; padding: 7px 10px; text-align: right; }
                 th { background-color: #ffffff; color: #475569; font-weight: 700; }
-                .sign-box { border-bottom: 1px dotted #475569; width: 130px; height: 18px; display: inline-block; }
-                .signatures { margin-top: 45px; display: flex; justify-content: space-between; font-size: 12px; page-break-inside: avoid; }
+                .iban-cell { font-family: monospace; font-size: 11px; direction: ltr; text-align: right; color: #1e293b; font-weight: 600; }
+                .sign-box { border-bottom: 1px dotted #475569; width: 100px; height: 16px; display: inline-block; }
+                
+                /* صندوق الملخص المالي الإجمالي في أسفل المسير */
+                .payroll-summary-box { background: #f8fafc; border: 2px solid #0f172a; border-radius: 8px; padding: 15px 20px; margin-top: 30px; page-break-inside: avoid; }
+                .payroll-summary-grid { display: flex; justify-content: space-between; align-items: center; gap: 20px; font-size: 13px; }
+                .signatures { margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; page-break-inside: avoid; }
             </style>
         </head>
         <body>
             <div class="report-header">
                 <div>
                     <h1>منصة حاجب لإدارة الفعاليات والكوادر المستقلة</h1>
-                    <p>مسير استحقاق وتوقيع الكوادر الميدانية لفعالية: <strong>${ev.title}</strong></p>
-                    <p>المدينة: ${ev.city} | الأجر اليومي المقرر: ${ev.daily_rate} ريال</p>
+                    <p>مسير استحقاق وتحويل المستحقات لفعالية: <strong>${ev.title}</strong></p>
+                    <p>يومية المنظم: <strong>${organizerRate} ريال</strong> | يومية المشرف: <strong>${supervisorRate} ريال</strong></p>
                 </div>
                 <div style="text-align: left;">
-                    <p>تاريخ استخراج المسير: ${new Date().toLocaleDateString('ar-SA')}</p>
-                    <p>إجمالي الموظفين المستحقين: ${staffList.length} موظف</p>
-                    <p>حالة الكشف: <strong>معتمد وموجز</strong></p>
+                    <p>تاريخ الكشف: ${new Date().toLocaleDateString('ar-SA')}</p>
+                    <p>إجمالي الكوادر المستحقة: ${staffList.length} كادر</p>
+                    <p>المدينة: ${ev.city}</p>
                 </div>
             </div>
 
-            <!-- عرض الموظفين مجمعين تحت كل فريق مع المشرف بدون تكرار -->
+            <!-- عرض الجداول مجمعة لكل فريق مع المشرف وأرقام الآيبان -->
             ${(teams || []).map(t => {
                 const teamStaff = staffList.filter(s => s.team_id === t.id);
-                if (teamStaff.length === 0) return ''; // تخطي الفرق التي لم يحضر منها أحد في التقرير
+                if (teamStaff.length === 0) return '';
 
                 return `
                     <div class="team-section">
                         <div class="team-section-header">
                             <div>
                                 <strong style="font-size: 14px; color: #0f172a;">${t.team_name}</strong>
-                                <span style="font-size: 12px; color: #475569; margin-right: 15px;">مشرف الفريق: <strong>${t.leader?.full_name || 'غير محدد'}</strong></span>
+                                <span style="font-size: 12px; color: #475569; margin-right: 15px;">مشرف الفريق الميداني: <strong>${t.leader?.full_name || 'غير محدد'}</strong></span>
                             </div>
                             <span style="font-size: 11px; background: #e2e8f0; padding: 2px 8px; border-radius: 10px; font-weight: 600;">${teamStaff.length} موظف</span>
                         </div>
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 30px;">م</th>
+                                    <th style="width: 25px;">م</th>
                                     <th>اسم الموظف</th>
-                                    <th>رقم الهوية الوطنية</th>
-                                    <th style="text-align: center;">عدد أيام / جلسات التحضير</th>
-									 <th style="text-align: center;">رقم STCBANK</th>
-                                    <th style="text-align: center;">إجمالي ساعات العمل</th>
-                                    <th style="width: 150px; text-align: center;">توقيع استلام المستحقات</th>
+                                    <th>رقم الهوية</th>
+                                    <th>رقم STC BANK</th>
+                                    <th>الوصف الوظيفي</th>
+                                    <th style="text-align: center;">أيام العمل</th>
+                                    <th style="text-align: center;">اليومية</th>
+                                    <th style="text-align: center; color: #047857;">الإجمالي</th>
+                                    <th style="width: 110px; text-align: center;">توقيع الاستلام</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${teamStaff.map((s, idx) => {
-                                    const h = Math.floor(s.totalMinutes / 60);
-                                    const m = s.totalMinutes % 60;
-                                    const hoursFormatted = `${h} س و ${m} د`;
-
-                                    return `
-                                        <tr>
-                                            <td>${idx + 1}</td>
-                                            <td><strong>${s.full_name}</strong></td>
-                                            <td>${s.id_number}</td>
-                                            <td style="text-align: center; font-weight: 700; color: #0f172a;">${s.sessionCount} أيام عمل</td>
-											<td>${s.bio || 'لا يوجد رقم مسجل'}</td>
-                                            <td style="text-align: center;">${hoursFormatted}</td>
-                                            <td style="text-align: center;"><span class="sign-box"></span></td>
-                                        </tr>
-                                    `;
-                                }).join('')}
+                                ${teamStaff.map((s, idx) => `
+                                    <tr>
+                                        <td>${idx + 1}</td>
+                                        <td><strong>${s.full_name}</strong></td>
+                                        <td>${s.id_number}</td>
+                                        <td class="iban-cell">${s.iban}</td>
+                                        <td><span style="font-weight: 600; color: ${s.is_supervisor ? '#b45309' : '#475569'};">${s.role_title}</span></td>
+                                        <td style="text-align: center; font-weight: 700;">${s.sessionCount} أيام</td>
+                                        <td style="text-align: center;">${s.daily_rate} ريال</td>
+                                        <td style="text-align: center; font-weight: 700; color: #047857; font-size: 12.5px;">${s.totalDue} ريال</td>
+                                        <td style="text-align: center;"><span class="sign-box"></span></td>
+                                    </tr>
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
                 `;
             }).join('')}
 
-            <!-- عرض الموظفين الذين داوموا ولكن لم يتم تعيينهم في فريق -->
+            <!-- عرض الموظفين الذين لم يتم تعيينهم في فريق إن وجدوا -->
             ${(() => {
                 const unassigned = staffList.filter(s => !s.team_id);
                 if (unassigned.length === 0) return '';
@@ -2158,55 +2187,73 @@ async function printEventAttendanceReport(eventId) {
                     <div class="team-section" style="border-color: #cbd5e1;">
                         <div class="team-section-header" style="background: #f1f5f9;">
                             <div>
-                                <strong style="font-size: 13px; color: #334155;">كوادر ميدانية عامة / بدون فريق</strong>
+                                <strong style="font-size: 13px; color: #334155;">كوادر ميدانية عامة</strong>
                             </div>
                             <span style="font-size: 11px; background: #e2e8f0; padding: 2px 8px; border-radius: 10px; font-weight: 600;">${unassigned.length} موظف</span>
                         </div>
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 30px;">م</th>
+                                    <th style="width: 25px;">م</th>
                                     <th>اسم الموظف</th>
-                                    <th>رقم الهوية الوطنية</th>
-                                    <th style="text-align: center;">عدد أيام / جلسات التحضير</th>
-                                    <th style="text-align: center;">إجمالي ساعات العمل</th>
-                                    <th style="width: 150px; text-align: center;">توقيع استلام المستحقات</th>
+                                    <th>رقم الهوية</th>
+                                    <th>رقم STC BANK</th>
+                                    <th>الوصف الوظيفي</th>
+                                    <th style="text-align: center;">أيام العمل</th>
+                                    <th style="text-align: center;">اليومية</th>
+                                    <th style="text-align: center; color: #047857;">الإجمالي</th>
+                                    <th style="width: 110px; text-align: center;">توقيع الاستلام</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${unassigned.map((s, idx) => {
-                                    const h = Math.floor(s.totalMinutes / 60);
-                                    const m = s.totalMinutes % 60;
-                                    const hoursFormatted = `${h} س و ${m} د`;
-
-                                    return `
-                                        <tr>
-                                            <td>${idx + 1}</td>
-                                            <td><strong>${s.full_name}</strong></td>
-                                            <td>${s.id_number}</td>
-                                            <td style="text-align: center; font-weight: 700;">${s.sessionCount} أيام عمل</td>
-                                            <td style="text-align: center;">${hoursFormatted}</td>
-                                            <td style="text-align: center;"><span class="sign-box"></span></td>
-                                        </tr>
-                                    `;
-                                }).join('')}
+                                ${unassigned.map((s, idx) => `
+                                    <tr>
+                                        <td>${idx + 1}</td>
+                                        <td><strong>${s.full_name}</strong></td>
+                                        <td>${s.id_number}</td>
+                                        <td class="iban-cell">${s.iban}</td>
+                                        <td>${s.role_title}</td>
+                                        <td style="text-align: center; font-weight: 700;">${s.sessionCount} أيام</td>
+                                        <td style="text-align: center;">${s.daily_rate} ريال</td>
+                                        <td style="text-align: center; font-weight: 700; color: #047857; font-size: 12.5px;">${s.totalDue} ريال</td>
+                                        <td style="text-align: center;"><span class="sign-box"></span></td>
+                                    </tr>
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
                 `;
             })()}
 
+            <!-- الصندوق المالي التنفيذي للمحاسب -->
+            <div class="payroll-summary-box">
+                <div class="payroll-summary-grid">
+                    <div>
+                        <span style="color: #64748b; display: block; font-size: 11px;">مستحقات المنظمين:</span>
+                        <strong>${totalOrganizerAmount} ريال سعودي</strong>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; display: block; font-size: 11px;">مستحقات المشرفين:</span>
+                        <strong style="color: #b45309;">${totalSupervisorAmount} ريال سعودي</strong>
+                    </div>
+                    <div style="border-right: 2px solid #cbd5e1; padding-right: 20px;">
+                        <span style="color: #0f172a; font-weight: 700; display: block; font-size: 12px;">إجمالي المستحقات</span>
+                        <span style="font-size: 18px; font-weight: 800; color: #047857;">${grandTotal} ريال سعودي</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="signatures">
                 <div>
-                    <p><strong>المشرف العام الميداني:</strong> ____________________</p>
+                    <p><strong>المشرف العام للعمليات:</strong> ____________________</p>
                     <p style="margin-top: 8px;">التوقيع: ____________________</p>
                 </div>
                 <div>
-                    <p><strong>مسؤول المحاسبة والصرف:</strong> ____________________</p>
+                    <p><strong>المحاسب المالي المختص:</strong> ____________________</p>
                     <p style="margin-top: 8px;">التوقيع: ____________________</p>
                 </div>
                 <div style="text-align: center;">
-                    <p><strong>الختم الرسمي للمنصة</strong></p>
+                    <p><strong>ختم الاعتماد المالي الرسمي</strong></p>
                     <div style="width: 85px; height: 85px; border: 1px dashed #94a3b8; margin: 5px auto 0; border-radius: 50%;"></div>
                 </div>
             </div>
