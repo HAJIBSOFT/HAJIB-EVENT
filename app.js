@@ -1237,7 +1237,7 @@ function setupRealtimeNotifications(userId) {
 
 // نافذة عرض شهادة التقدير للمنظم
 // نافذة الشهادة الفخمة مع خيارات الطباعة المباشرة للآيفون والـ BLOB
-async function openCertificateModal(eventId) {
+ async function openCertificateModal(eventId) {
     const db = getDb();
     const { data: ev } = await db.from('HAJIBEVENT-events').select('*').eq('id', eventId).single();
     const p = AppState.profile;
@@ -1315,7 +1315,7 @@ async function openCertificateModal(eventId) {
 }
 
 // 1. توليد كود HTML الكامل للشهادة بدقة عالية مع الخلفية الملكية
-function generateCertificateHTML(ev, p) {
+ function generateCertificateHTML(ev, p) {
     return `
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
@@ -1436,9 +1436,6 @@ window.openCertificateModal = openCertificateModal;
 window.printCertificateDirectly = printCertificateDirectly;
 window.openCertificateAsBlob = openCertificateAsBlob;
 
-// تصدير الدوال للنطاق العام
-window.openCertificateModal = openCertificateModal;
-window.printOfficialCertificate = printOfficialCertificate;
 
 // تصدير الدوال الجديدة للنطاق العام
 window.openNotificationsCenter = openNotificationsCenter;
