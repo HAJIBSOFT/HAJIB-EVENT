@@ -1244,71 +1244,20 @@ function setupRealtimeNotifications(userId) {
 
     const html = `
         <div style="text-align:center; margin-bottom:1.2rem;">
-            <h3>شهادة شكر وتقدير رسمية</h3>
-            <p style="color:var(--text-muted); font-size:0.85rem;">معتمدة من منصة حاجب لإدارة الفعاليات والكوادر المستقلة</p>
+            <h3>نحن فخورون بك</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem;">انت اساس نجاح المشروع</p>
         </div>
 
         <!-- معاينة الشهادة بالخلفية الملكية والزخارف -->
-        <div class="cert-luxury-card">
-            <div class="cert-watermark"></div>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#64748b; font-weight:700; margin-bottom:1.5rem; position:relative; z-index:2;">
-                <div>منصة حاجب لإدارة الفعاليات</div>
-                <div>المملكة العربية السعودية</div>
-            </div>
-
-            <h1 style="font-size:1.8rem; color:#0f172a; margin:0.5rem 0 0.2rem; font-weight:800; position:relative; z-index:2;">
-                شــهــادة شــكــر وتــقــديــر
-            </h1>
-            <p style="font-size:0.85rem; color:#d97706; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:1.5rem; position:relative; z-index:2;">
-                CERTIFICATE OF APPRECIATION
-            </p>
-
-            <p style="font-size:0.95rem; color:#475569; line-height:1.8; margin-bottom:0.4rem; position:relative; z-index:2;">
-                تتقدم إدارة <strong>منصة حاجب لتنظيم الفعاليات</strong> بجزيل الشكر وعظيم الامتنان للزميل:
-            </p>
-            
-            <h2 style="font-size:1.5rem; color:#0f172a; margin:0.3rem 0; border-bottom:2px solid #0f172a; display:inline-block; padding:0 2.5rem 0.3rem; font-weight:800; position:relative; z-index:2;">
-                ${p.full_name}
-            </h2>
-            <div style="font-size:0.85rem; color:#64748b; margin-top:0.3rem; position:relative; z-index:2;">
-                السجل المدني / رقم الهوية: <strong>${p.id_number}</strong>
-            </div>
-
-            <p style="font-size:0.92rem; color:#475569; line-height:1.8; margin:1.2rem 0; position:relative; z-index:2;">
-                تقديراً لجهوده المتميزة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
-                <strong style="font-size:1.15rem; color:#0f172a;">${ev.title}</strong><br>
-                المقامة في مدينة <strong>${ev.city}</strong> في الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
-            </p>
-
-            <div style="margin-top:2rem; display:flex; justify-content:space-between; align-items:flex-end; padding:0 1.5rem; font-size:0.85rem; position:relative; z-index:2;">
-                <div style="text-align:right;">
-                    <p><strong>المشرف العام الميداني</strong></p>
-                    <p style="color:#64748b; font-size:0.8rem; margin-top:0.2rem;">إدارة العمليات والتشغيل</p>
-                </div>
-                <div style="text-align:center;">
-                    <div style="width:75px; height:75px; border:2px dashed #d97706; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#d97706; font-size:0.75rem; font-weight:700;">
-                        ختم الاعتماد الرسمي
-                    </div>
-                </div>
-                <div style="text-align:left;">
-                    <p><strong>تاريخ الاعتماد</strong></p>
-                    <p style="color:#64748b; font-size:0.8rem; margin-top:0.2rem;">${new Date().toLocaleDateString('ar-SA')}</p>
-                </div>
-            </div>
-        </div>
+        
 
         <!-- أزرار الإجراء المتوافقة تماماً مع الآيفون -->
-        <div style="margin-top:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:0.8rem;">
+        <div style="margin-top:1.5rem; display:grid; gap:0.8rem;">
             <!-- زر الطباعة وحفظ PDF المباشر للآيفون -->
-            <button class="btn btn-primary" onclick="printCertificateDirectly('${eventId}')">
+            <button class="btn btn-primary" onclick="openCertificateAsBlob('${eventId}')">
                 حفظ كـ PDF / طباعة
             </button>
             
-            <!-- زر فتح الشهادة عبر BLOB لمشاركتها وتنزيلها -->
-            <button class="btn btn-outline" onclick="openCertificateAsBlob('${eventId}')">
-                فتح الشهادة (رابط BLOB)
-            </button>
         </div>
     `;
     openModal(html);
@@ -1318,71 +1267,311 @@ function setupRealtimeNotifications(userId) {
  function generateCertificateHTML(ev, p) {
     return `
         <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <title>شهادة شكر وتقدير - ${p.full_name}</title>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700;800&display=swap');
-                * { box-sizing: border-box; font-family: 'Readex Pro', sans-serif; }
-                @page { size: A4 landscape; margin: 0; }
-                body { margin: 0; padding: 25px; background: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-                .cert-container {
-                    width: 100%; height: 100%; border: 12px solid #0f172a; padding: 35px; border-radius: 8px; position: relative;
-                    outline: 3px solid #d97706; outline-offset: -18px; text-align: center;
-                    background: radial-gradient(circle, #ffffff 60%, #fffdfa 100%);
-                }
-                .cert-container::before {
-                    content: ''; position: absolute; inset: 20px;
-                    background-image: radial-gradient(#d97706 0.75px, transparent 0.75px), radial-gradient(#d97706 0.75px, #fffdfa 0.75px);
-                    background-size: 30px 30px; background-position: 0 0, 15px 15px; opacity: 0.08; pointer-events: none;
-                }
-                .cert-header { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 20px; position: relative; z-index: 2; }
-                h1 { font-size: 32px; color: #0f172a; margin: 5px 0; font-weight: 800; letter-spacing: -1px; position: relative; z-index: 2; }
-                .sub-title { font-size: 13px; color: #d97706; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; position: relative; z-index: 2; }
-                .cert-text { font-size: 17px; color: #334155; line-height: 1.8; margin-bottom: 10px; position: relative; z-index: 2; }
-                .name { font-size: 26px; color: #0f172a; font-weight: 800; margin: 10px 0 5px; border-bottom: 2px solid #0f172a; display: inline-block; padding: 0 40px 6px; position: relative; z-index: 2; }
-                .event-title { font-size: 21px; color: #0f172a; font-weight: 800; }
-                .cert-footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px; font-size: 13px; position: relative; z-index: 2; }
-                .stamp { width: 90px; height: 90px; border: 2px dashed #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #d97706; font-weight: 700; font-size: 12px; margin: 0 auto; }
-            </style>
-        </head>
-        <body>
-            <div class="cert-container">
-                <div class="cert-header">
-                    <div>منصة حاجب لإدارة الفعاليات</div>
-                    <div>المملكة العربية السعودية</div>
-                </div>
+     <html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>شهادة شكر وتقدير - ${p.full_name}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
 
-                <h1>شــهــادة شــكــر وتــقــديــر</h1>
-                <div class="sub-title">Certificate of Appreciation</div>
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
 
-                <div class="cert-text">تتقدم إدارة منصة حاجب بجزيل الشكر وعظيم التقدير للزميل:</div>
-                <div class="name">${p.full_name}</div>
-                <div style="font-size: 14px; color: #64748b; margin-top: 5px; position: relative; z-index: 2;">رقم الهوية الوطنية / الإقامة: <strong>${p.id_number}</strong></div>
+        body {
+            background-color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-                <div class="cert-text" style="margin-top: 20px;">
-                    نظير مشاركته الفعالة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
-                    <span class="event-title">${ev.title}</span><br>
-                    المنعقدة في مدينة <strong>${ev.city}</strong> في الفترة من ${new Date(ev.start_date).toLocaleDateString('ar-SA')} إلى ${new Date(ev.end_date).toLocaleDateString('ar-SA')}.
-                </div>
+        .cert-card {
+            width: 100%;
+            max-width: 1100px;
+            height: 750px;
+            background: #ffffff;
+            position: relative;
+            padding: 40px 60px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: 2px solid #e2e8f0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-                <div class="cert-footer">
-                    <div>
-                        <p><strong>المشرف العام الميداني</strong></p>
-                        <p style="margin-top: 5px; color: #64748b;">إدارة الفعاليات والتشغيل</p>
-                    </div>
-                    <div>
-                        <div class="stamp">ختم الاعتماد الرسمي</div>
-                    </div>
-                    <div>
-                        <p><strong>تاريخ الاعتماد</strong></p>
-                        <p style="margin-top: 5px; color: #64748b;">${new Date().toLocaleDateString('ar-SA')}</p>
-                    </div>
+        /* الزخارف الذهبية والكحلية الأنيقة على الجوانب */
+        .cert-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 160px;
+            height: 160px;
+            background: linear-gradient(135deg, #0f172a 50%, #c59b27 50%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+            opacity: 0.9;
+        }
+
+        .cert-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 160px;
+            height: 160px;
+            background: linear-gradient(135deg, #c59b27 50%, #0f172a 50%);
+            clip-path: polygon(0 100%, 0 0, 100% 100%);
+            opacity: 0.9;
+        }
+
+        /* الإطار الداخلي الذهبي */
+        .inner-border {
+            position: absolute;
+            inset: 15px;
+            border: 1px solid #c59b27;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        /* الهيدر: الشعار والمعلومات */
+        .cert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            padding-bottom: 15px;
+        }
+
+        .logo-box {
+            width: 180px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: end;
+        }
+
+        .logo-placeholder {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .header-info {
+            text-align: left;
+            font-size: 13px;
+            color: #475569;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        /* العناوين والمحتوى الرئيسي */
+        .cert-body {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            margin-top: 10px;
+        }
+
+        .cert-title {
+            font-size: 34px;
+            color: #0f172a;
+            font-weight: 900;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .cert-subtitle {
+            font-size: 13px;
+            color: #c59b27;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 25px;
+        }
+
+        .cert-intro {
+            font-size: 17px;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+
+        .recipient-name {
+            font-size: 30px;
+            color: #0f172a;
+            font-weight: 800;
+            display: inline-block;
+            padding: 2px 35px;
+            border-bottom: 2px solid #c59b27;
+            margin-bottom: 8px;
+        }
+
+        .id-number {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .cert-description {
+            font-size: 16px;
+            color: #334155;
+            line-height: 1.8;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .event-name {
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 19px;
+        }
+
+        /* الفوتر: الختم والتوقيع والتاريخ */
+        .cert-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 2;
+            padding: 0 20px;
+            margin-bottom: 10px;
+        }
+
+        .footer-block {
+            flex: 1;
+            text-align: center;
+        }
+
+        .footer-block.right { text-align: right; }
+        .footer-block.left { text-align: left; }
+
+        .signature-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .signature-sub {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* مكان رفع التوقيع الإلكتروني */
+        .signature-image-container {
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 5px;
+        }
+
+        .signature-img {
+            max-height: 100%;
+            max-width: 150px;
+            object-fit: contain;
+        }
+
+        /* الختم الرسمى */
+        .official-stamp {
+            width: 85px;
+            height: 85px;
+            border: 2px dashed #c59b27;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #c59b27;
+            font-weight: 700;
+            font-size: 11px;
+            margin: 0 auto;
+            background: rgba(197, 155, 39, 0.03);
+        }
+
+        .date-box {
+            font-size: 13px;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cert-card">
+        <div class="inner-border"></div>
+
+        <!-- الهيدر (الشعار والمعلومات الرسمية) -->
+        <div class="cert-header">
+            <div class="logo-box">
+                <!-- يمكنك استبدال src برابط شعار منصة حاجب -->
+                <img src="" alt="شعار المنصة" class="logo-placeholder" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div style="display:none; font-weight:800; color:#0f172a; font-size:18px;">HAJIB EVENT</div>
+            </div>
+			
+            <div class="header-info">
+			<div class="logo-box">
+                <!-- يمكنك استبدال src برابط شعار منصة حاجب -->
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgH8GXW0t32QkIecRQevXWeH_koj6TFuJlMwq5Lf1UKP4VFszLiXox4DdjyyLzIj6CZQKtg6q7rmHRvU8mLT6pRY9IhtQOsz4LF587PQyOfll44NRnusVqjXZVRxdlgdcj9FpD52y0lsbfrpzTlfM_teOWJ2O1kG37vAt_8n4uTN65wUx8KDt1ge6w0HuOo/s768/HAJIB%20EVENT.png" alt="شعار المنصة" class="logo-placeholder" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div style="display:none; font-weight:800; color:#0f172a; font-size:18px;">الشعار</div>
+            </div>
+               
+            </div>
+        </div>
+
+        <!-- متن الشهادة -->
+        <div class="cert-body">
+            <h1 class="cert-title">شهادة شكر وتقدير</h1>
+            <div class="cert-subtitle">Certificate of Appreciation</div>
+
+            <p class="cert-intro">تتقدم ادرة منصة حاجب ايفنت بجزيل الشكر وعظيم التقدير للزميل:</p>
+            
+            <div class="recipient-name">${p.full_name}</div>
+            <div class="id-number">رقم الهوية الوطنية / الإقامة: <strong>${p.id_number}</strong></div>
+
+            <p class="cert-description">
+                نظير مشاركته الفعالة وتفانيه الملموس في تشغيل وتنظيم فعاليات:<br>
+                <span class="event-name">${ev.title}</span><br>
+                المنعقدة في مدينة <strong>${ev.city}</strong> خلال الفترة من 
+                <strong>${new Date(ev.start_date).toLocaleDateString('ar-SA')}</strong> إلى 
+                <strong>${new Date(ev.end_date).toLocaleDateString('ar-SA')}</strong>.
+            </p>
+        </div>
+
+        <!-- الفوتر والتوقيع الإلكتروني -->
+        <div class="cert-footer">
+            <!-- قسم التوقيع الإلكتروني -->
+            <div class="footer-block right">
+                <div class="signature-title">المشرف العام الميداني</div>
+                 <strong>${new Date().toLocaleDateString('ar-SA')}</strong>
+                
+                <!-- مكان رفع وصورة التوقيع الإلكتروني -->
+                <div class="signature-image-container">
+                    <!-- استبدل src برابط صورة التوقيع الإلكتروني الرقمي PNG (شفاف) -->
+                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiAmhjU5oVeb9Ibml4PNgM4tm2M9GGBSdyt3nA-5dvAfaZ1OzKO0Qw5MTuph6ng27SswkqXlrSY0rVqbpHxa3ZPLq1_9c7aortrdZOnrgJBVA_Xv9BYk4OldcWlvFTz9KZX28XDyRypE7mCH5GsT4WzacxEwRdwYljFEUhBaQOCV-Y1meUG2c8kDAAaAaxW/s242/SIGNT5.png" alt="التوقيع الإلكتروني" class="signature-img" onerror="this.style.opacity='0.2';">
                 </div>
             </div>
-        </body>
-        </html>
+
+            <!-- الختم الرسمي -->
+         
+
+            <!-- تاريخ الاعتماد -->
+           
+        </div>
+    </div>
+
+</body>
+</html>
     `;
 }
 
